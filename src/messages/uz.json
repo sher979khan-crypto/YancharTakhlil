@@ -5,7 +5,8 @@
   },
   "Home": {
     "title": "Yanchar Takhlilga xush kelibsiz",
-    "subtitle": "Bozor kapitallashuvi boʻyicha eng yirik 99 ta kriptovalyutani joriy narxlar va sunʼiy intellekt yordamidagi tahlil bilan kuzatib boring."
+    "subtitle": "Bozor kapitallashuvi boʻyicha eng yirik 99 ta kriptovalyutani joriy narxlar va sunʼiy intellekt yordamidagi tahlil bilan kuzatib boring.",
+    "metaTitle": "Eng yirik 99 ta kriptovalyuta narxlari"
   },
   "LocaleSwitcher": {
     "label": "Til",
@@ -19,5 +20,70 @@
     "up": "Oʻsish",
     "down": "Pasayish",
     "unchanged": "Oʻzgarishsiz"
+  },
+  "Nav": {
+    "label": "Asosiy navigatsiya",
+    "home": "Bosh sahifa",
+    "markets": "Bozorlar",
+    "openMenu": "Menyuni ochish",
+    "closeMenu": "Menyuni yopish"
+  },
+  "SkipLink": {
+    "label": "Asosiy mazmunga oʻtish"
+  },
+  "Footer": {
+    "attribution": "Maʼlumotlar <link>CoinGecko</link> tomonidan taqdim etilgan",
+    "newTab": "(yangi varaqda ochiladi)",
+    "disclaimerShort": "Faqat axborot va taʼlim maqsadida. Moliyaviy maslahat emas.",
+    "disclaimerLink": "Masʼuliyatdan voz kechish matnini toʻliq oʻqing",
+    "copyright": "© {year} Yanchar Takhlil"
+  },
+  "Markets": {
+    "metaTitle": "Bozorlar",
+    "title": "Bozorlar",
+    "description": "Eng yirik 99 ta kriptovalyutaning narxlari, bozor kapitallashuvi va 24 soatlik oʻzgarishlari.",
+    "comingSoon": "Jonli roʻyxat tez orada"
+  },
+  "Disclaimer": {
+    "metaTitle": "Masʼuliyatdan voz kechish",
+    "title": "Masʼuliyatdan voz kechish",
+    "intro": "Yanchar Takhlil — axborot va taʼlim vositasi. Ushbu saytdagi hech narsa moliyaviy, investitsiya, huquqiy yoki soliq maslahati hisoblanmaydi.",
+    "sections": {
+      "notAdvice": {
+        "title": "Moliyaviy maslahat emas",
+        "body": "Barcha kontent, jumladan sunʼiy intellekt tomonidan yaratilgan tahlillar hamda sotib olish / ushlab turish / sotish signallari faqat umumiy maʼlumot boʻlib, shaxsiy vaziyatingizni hisobga olmaydi. Qaror qabul qilishdan oldin mustaqil tadqiqot oʻtkazing va litsenziyaga ega moliyaviy maslahatchi bilan maslahatlashishni koʻrib chiqing."
+      },
+      "aiWrong": {
+        "title": "Sunʼiy intellekt xato qilishi mumkin",
+        "body": "Bizning sunʼiy intellekt agentlarimiz notoʻgʻri, toʻliq boʻlmagan yoki eskirgan maʼlumot berishi mumkin. Muhim faktlarga asoslanib harakat qilishdan oldin ularni tekshiring."
+      },
+      "marketData": {
+        "title": "Bozor maʼlumotlari",
+        "body": "Narxlar va bozor maʼlumotlari uchinchi tomon provayderlaridan (CoinGecko) olinadi va kechikishi, notoʻgʻri boʻlishi yoki vaqtincha mavjud boʻlmasligi mumkin. Maʼlumotlar real vaqtda emas va bir necha daqiqaga kechikishi mumkin."
+      },
+      "highRisk": {
+        "title": "Yuqori xavf",
+        "body": "Kriptovalyutalar juda oʻzgaruvchan. Siz pulingizning bir qismini yoki barchasini yoʻqotishingiz mumkin. Oʻtmishdagi natijalar kelajakdagi natijalarni kafolatlamaydi."
+      },
+      "responsibility": {
+        "title": "Sizning masʼuliyatingiz",
+        "body": "Investitsiya qarorlaringiz uchun faqat oʻzingiz javobgarsiz. Yanchar Takhlil ushbu saytdan foydalanish natijasida yuzaga kelgan har qanday zarar uchun javobgar emas."
+      },
+      "noEndorsement": {
+        "title": "Tavsiya emas",
+        "body": "Biror kriptovalyutaning tilga olinishi tavsiya yoki maʼqullash hisoblanmaydi."
+      }
+    },
+    "lastUpdated": "Soʻnggi yangilanish: 2026-yil 26-sentabr"
+  },
+  "NotFound": {
+    "title": "Sahifa topilmadi",
+    "description": "Siz qidirayotgan sahifa mavjud emas yoki boshqa joyga koʻchirilgan.",
+    "backHome": "Bosh sahifaga qaytish"
+  },
+  "Error": {
+    "title": "Nimadir xato ketdi",
+    "description": "Bu sahifani yuklab boʻlmadi. Iltimos, qayta urinib koʻring.",
+    "retry": "Qayta urinish"
   }
 }

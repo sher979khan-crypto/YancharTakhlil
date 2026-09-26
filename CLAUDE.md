@@ -36,9 +36,14 @@
 
 ## 5. Folder structure
 src/
-  app/                        Routes only; keep thin. Later: app/[locale]/..., app/api/v1/...
+  app/                        Routes only; keep thin. Later: app/api/v1/...
+    [locale]/                 Root layout (shell), not-found, error, [...rest] catch-all (unknown URL -> 404)
+    [locale]/(pages)/         All pages (route group, so the layout's title template applies to the
+                              home page too). No route-level loading.tsx (see §6).
+    robots.ts, sitemap.ts, global-error.tsx
   components/ui/              Design-system primitives (Button, Card, Badge, ...)
-  components/features/<name>/ Feature components (coins, coin-detail, analyst, assistant, hero)
+  components/features/<name>/ Feature components (coins, coin-detail, analyst, assistant, hero,
+                              site-header, site-footer, skip-link, brand, locale-switcher)
   lib/domain/                 Types and pure business logic. No I/O.
   lib/providers/              Data-access interfaces and implementations (coingecko/, json/, memory/)
   lib/ai/core/                Shared OpenRouter client, guards (rate limit, budget, input limits)
@@ -46,6 +51,8 @@ src/
   lib/ai/agents/analyst/      "Tahlilchi" agent: prompt, config, output schema
   lib/ai/indicators/          Technical indicators (pure functions, unit-tested)
   lib/i18n/                   i18n helpers
+  lib/navigation/             Nav items and the active-route matcher
+  lib/seo/                    Canonical/hreflang builder and per-page metadata helper
   lib/utils/                  Small pure helpers
   config/                     Non-secret config: site.ts, ai.ts, cache.ts
   data/                       Static JSON: excluded-coins.json, knowledge/{en,ar,uz}.json
@@ -59,6 +66,8 @@ Tests are colocated as *.test.ts(x).
 - Server Components call providers directly. Never fetch your own /api routes from the server.
 - Route Handlers live under /api/v1/* and serve client polling, chat, analysis and future clients.
 - Validate all external data and all request input with zod.
+- No route-level loading.tsx above any page that can call notFound(): it makes the response stream and
+  turns 404 into 200. Show loading states with <Suspense> inside the page, after validation/notFound checks.
 - Coin pages use on-demand ISR. NEVER pre-render all coins at build time (99 coins x 3 locales would
   exhaust the API quota).
 - Only coin IDs from the current top-99 list are accepted; everything else returns 404.
@@ -101,6 +110,8 @@ Tests are colocated as *.test.ts(x).
 - No hard-coded UI strings. Every key must exist in all three message files.
   Exception: the dev-only styleguide (/[locale]/styleguide, 404 in production) uses English labels.
   Text rendered by the UI components themselves still comes from the message files.
+  Exception: src/app/global-error.tsx is English-only. It replaces the root layout when that layout
+  throws, so it runs outside NextIntlClientProvider and cannot know the locale.
 - Use logical CSS only (ms-/me-/ps-/pe-/start-/end-, text-start/text-end). Never left/right.
 - Wrap tickers, prices and percentages in <bdi> (or dir="ltr") inside RTL text. Charts stay LTR.
 - Format numbers, currency and dates for the active locale, always through src/lib/i18n/format.ts.
@@ -129,7 +140,9 @@ Tests are colocated as *.test.ts(x).
   - Dark only (color-scheme: dark). Focus ring: 2px brand outline + 2px offset, set globally on :focus-visible.
 - Fonts (src/lib/fonts.ts, next/font/google, self-hosted): font-display = Unbounded (headings/hero),
   font-sans = Noto Sans (body/UI), font-mono = JetBrains Mono (numbers, always with tabular-nums).
-  Arabic ([lang="ar"]) uses IBM Plex Sans Arabic for both font-display and font-sans; numbers stay mono.
+  Arabic ([lang="ar"]): font-display = IBM Plex Sans Arabic; font-sans = Noto Sans first, then IBM Plex
+  Sans Arabic (Arabic glyphs fall through to Plex, Latin words match the rest of the site); numbers stay mono.
+- font-brand = Unbounded, used only for the brand wordmark; identical in all locales.
 - font-mono is only for numbers and tickers, never for words (JetBrains Mono lacks U+02BB).
 - UI primitives live in src/components/ui: Button, Card, Badge, Skeleton, PriceChange, TickerNumber, icons.
 - Use TickerNumber (live, animated) or PriceChange (percentage move) for all live numbers.
@@ -182,3 +195,21 @@ Tests are colocated as *.test.ts(x).
 - 2026-09-26: Body font is Noto Sans instead of IBM Plex Sans, whose U+02BB/U+02BC glyphs are wider than
   "o" and leave visible gaps in Uzbek. IBM Plex Sans Arabic, Unbounded and JetBrains Mono stay; JetBrains
   Mono lacks U+02BB, so font-mono is used only for numbers.
+- 2026-09-26: Layout shell (Step 4). The nav has exactly two items, Home and Markets; no social/contact
+  links yet. The Kotib chat button mounts via AssistantSlot (after the footer) in Step 20.
+- 2026-09-26: Unknown URLs use next-intl's error-files pattern ([locale]/[...rest] calls notFound() ->
+  [locale]/not-found.tsx), not the experimental global-not-found. Pages live in the [locale]/(pages)
+  route group (title template on the home page).
+- 2026-09-26: SEO: metadataBase from getSiteUrl() (NEXT_PUBLIC_SITE_URL -> Netlify's read-only URL ->
+  localhost, each validated; a production build that falls back to localhost logs one warning).
+  Every page's generateMetadata uses buildPageMetadata (src/lib/seo): translated title in the
+  "%s | Yanchar Takhlil" template, description, absolute canonical, hreflang en/ar/uz + x-default -> /en,
+  and Open Graph (locale en_US/ar_AR/uz_UZ). No canonical at layout level. robots.ts disallows /api/ and
+  /*/styleguide; sitemap.ts lists the static pages x 3 locales with hreflang alternates.
+- 2026-09-26: Arabic body font chain is Noto Sans first, then IBM Plex Sans Arabic (Noto has no Arabic
+  glyphs, so Arabic still renders in Plex). Arabic font-display is unchanged (Plex Arabic first).
+- 2026-09-26: Error boundaries call retry() (re-fetches the segment), per the Next 16.3 docs, not reset().
+- 2026-09-26: Step 4.1. Route-level loading.tsx removed: it streamed every response, so notFound() in a
+  page (e.g. /en/styleguide in production) returned 200. Loading UI goes in <Suspense> inside pages.
+- 2026-09-26: font-brand token (Unbounded, never remapped by [lang="ar"]) for the wordmark, which carries
+  lang="en".

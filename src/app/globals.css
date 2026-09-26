@@ -30,6 +30,8 @@
     var(--font-unbounded-face), var(--font-plex-arabic-face), ui-sans-serif, system-ui, sans-serif;
   --font-sans:
     var(--font-noto-sans-face), var(--font-plex-arabic-face), ui-sans-serif, system-ui, sans-serif;
+  /* Brand wordmark only. Latin, and deliberately not remapped under [lang="ar"]. */
+  --font-brand: var(--font-unbounded-face), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono-face), ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   --radius-sm: 0.25rem;
@@ -102,12 +104,17 @@
     color-scheme: dark;
   }
 
-  /* Unbounded has no Arabic glyphs, so Arabic text uses IBM Plex Sans Arabic for everything. */
+  /*
+   * Unbounded has no Arabic glyphs, so Arabic headings use IBM Plex Sans Arabic. Body text lists
+   * Noto Sans first: it has no Arabic glyphs, so Arabic still falls through to Plex Arabic, while
+   * Latin words (e.g. "Oʻzbekcha" in the language menu) match the rest of the site and keep the
+   * narrow U+02BB that Plex draws too wide.
+   */
   [lang="ar"] {
     --font-display:
       var(--font-plex-arabic-face), var(--font-noto-sans-face), ui-sans-serif, system-ui, sans-serif;
     --font-sans:
-      var(--font-plex-arabic-face), var(--font-noto-sans-face), ui-sans-serif, system-ui, sans-serif;
+      var(--font-noto-sans-face), var(--font-plex-arabic-face), ui-sans-serif, system-ui, sans-serif;
     font-family: var(--font-sans);
   }
 

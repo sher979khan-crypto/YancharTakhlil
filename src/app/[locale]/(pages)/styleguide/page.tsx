@@ -51,8 +51,8 @@ export default function StyleguidePage() {
   ];
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10 sm:px-8">
-      <header className="flex flex-col gap-2">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-10 sm:px-8">
+      <div className="flex flex-col gap-2">
         <Badge tone="brand" className="self-start">
           dev only
         </Badge>
@@ -62,7 +62,7 @@ export default function StyleguidePage() {
         <p className="text-fg-muted">
           Tokens and UI primitives. Open /ar/styleguide to check RTL mirroring.
         </p>
-      </header>
+      </div>
 
       <Section title="Color tokens and contrast (WCAG 2.2)">
         <ColorTokens />
@@ -215,6 +215,6 @@ export default function StyleguidePage() {
           <TickerDemo locale={locale} />
         </Card>
       </Section>
-    </main>
+    </div>
   );
 }

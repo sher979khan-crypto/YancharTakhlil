@@ -5,7 +5,8 @@
   },
   "Home": {
     "title": "Welcome to Yanchar Takhlil",
-    "subtitle": "Track the top 99 cryptocurrencies by market cap, with live prices and AI-assisted analysis."
+    "subtitle": "Track the top 99 cryptocurrencies by market cap, with live prices and AI-assisted analysis.",
+    "metaTitle": "Top 99 crypto prices"
   },
   "LocaleSwitcher": {
     "label": "Language",
@@ -19,5 +20,70 @@
     "up": "Up",
     "down": "Down",
     "unchanged": "Unchanged"
+  },
+  "Nav": {
+    "label": "Main navigation",
+    "home": "Home",
+    "markets": "Markets",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "SkipLink": {
+    "label": "Skip to content"
+  },
+  "Footer": {
+    "attribution": "Data provided by <link>CoinGecko</link>",
+    "newTab": "(opens in a new tab)",
+    "disclaimerShort": "For information and education only. Not financial advice.",
+    "disclaimerLink": "Read the full disclaimer",
+    "copyright": "© {year} Yanchar Takhlil"
+  },
+  "Markets": {
+    "metaTitle": "Markets",
+    "title": "Markets",
+    "description": "Prices, market caps and 24h changes for the top 99 cryptocurrencies.",
+    "comingSoon": "Live list coming soon"
+  },
+  "Disclaimer": {
+    "metaTitle": "Disclaimer",
+    "title": "Disclaimer",
+    "intro": "Yanchar Takhlil is an informational and educational tool. Nothing on this website is financial, investment, legal or tax advice.",
+    "sections": {
+      "notAdvice": {
+        "title": "Not financial advice",
+        "body": "All content, including AI-generated analysis and BUY / HOLD / SELL signals, is general information only and does not consider your personal situation. Do your own research and consider consulting a licensed financial adviser before making decisions."
+      },
+      "aiWrong": {
+        "title": "AI can be wrong",
+        "body": "Our AI agents can produce inaccurate, incomplete or outdated information. Verify important facts before acting on them."
+      },
+      "marketData": {
+        "title": "Market data",
+        "body": "Prices and market data come from third-party providers (CoinGecko) and may be delayed, inaccurate or temporarily unavailable. Data is not real-time and can lag by a few minutes."
+      },
+      "highRisk": {
+        "title": "High risk",
+        "body": "Cryptocurrencies are highly volatile. You can lose part or all of your money. Past performance does not guarantee future results."
+      },
+      "responsibility": {
+        "title": "Your responsibility",
+        "body": "You are solely responsible for your investment decisions. Yanchar Takhlil is not liable for any loss arising from the use of this website."
+      },
+      "noEndorsement": {
+        "title": "No endorsement",
+        "body": "Mentioning a cryptocurrency is not a recommendation or endorsement."
+      }
+    },
+    "lastUpdated": "Last updated: 26 September 2026"
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist or has been moved.",
+    "backHome": "Back to home"
+  },
+  "Error": {
+    "title": "Something went wrong",
+    "description": "We could not load this page. Please try again.",
+    "retry": "Try again"
   }
 }

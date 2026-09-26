@@ -75,6 +75,23 @@ export function ChevronIcon({ direction = "end", className, ...props }: ChevronP
   );
 }
 
+/** Symmetric, so it needs no RTL mirroring. */
+export function MenuIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
+    </Icon>
+  );
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+    </Icon>
+  );
+}
+
 export function SpinnerIcon({ className, ...props }: IconProps) {
   return (
     <Icon className={cn("motion-safe:animate-spin", className)} {...props}>
