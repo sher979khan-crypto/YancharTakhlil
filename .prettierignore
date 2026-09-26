@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+build
+coverage
+.netlify
+.vitest
+pnpm-lock.yaml
+next-env.d.ts
+
+# Kept verbatim as provided by the owner
+CLAUDE.md

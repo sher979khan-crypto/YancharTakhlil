@@ -1,0 +1,33 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# testing
+/coverage
+.vitest/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# netlify
+.netlify
+
+# misc
+.DS_Store
+*.pem
+
+# logs
+*.log
+
+# env files (only the template is committed)
+.env*
+!.env.example
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

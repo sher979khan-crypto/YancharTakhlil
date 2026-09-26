@@ -1,0 +1,21 @@
+{
+  "Metadata": {
+    "title": "Yanchar Takhlil",
+    "description": "Bozor kapitallashuvi boʻyicha eng yirik 99 ta kriptovalyuta, joriy narxlar va sunʼiy intellekt yordamidagi tahlil."
+  },
+  "Home": {
+    "title": "Yanchar Takhlilga xush kelibsiz",
+    "subtitle": "Bozor kapitallashuvi boʻyicha eng yirik 99 ta kriptovalyutani joriy narxlar va sunʼiy intellekt yordamidagi tahlil bilan kuzatib boring."
+  },
+  "LocaleSwitcher": {
+    "label": "Til",
+    "locales": {
+      "en": "English",
+      "ar": "العربية",
+      "uz": "Oʻzbekcha"
+    }
+  },
+  "FormatPreview": {
+    "heading": "Raqamlarni formatlash namunasi"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "Metadata": {
+    "title": "Yanchar Takhlil",
+    "description": "Top 99 cryptocurrencies by market cap, live prices and AI-assisted analysis."
+  },
+  "Home": {
+    "title": "Welcome to Yanchar Takhlil",
+    "subtitle": "Track the top 99 cryptocurrencies by market cap, with live prices and AI-assisted analysis."
+  },
+  "LocaleSwitcher": {
+    "label": "Language",
+    "locales": {
+      "en": "English",
+      "ar": "العربية",
+      "uz": "Oʻzbekcha"
+    }
+  },
+  "FormatPreview": {
+    "heading": "Number formatting preview"
+  }
+}
