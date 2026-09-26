@@ -24,11 +24,14 @@ export function LocaleSwitcher() {
   }
 
   return (
-    <div>
-      <label htmlFor={id}>{t("label")}</label>
+    <div className="flex items-center gap-2 text-sm">
+      <label htmlFor={id} className="text-fg-muted">
+        {t("label")}
+      </label>
+      {/* fg-subtle border: a form control's edge needs 3:1, which the line token does not reach. */}
       <select
         id={id}
-        className="ms-2 rounded border border-current bg-transparent ps-2 pe-2"
+        className="h-10 rounded-md border border-fg-subtle bg-surface-2 px-3 text-fg disabled:opacity-50"
         value={locale}
         onChange={handleChange}
         disabled={isPending}

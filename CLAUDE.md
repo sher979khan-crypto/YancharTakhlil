@@ -22,6 +22,9 @@
 - Tailwind CSS 4.3.3, ESLint (flat config), Prettier, Vitest
 - next-intl 4.14.7 (i18n routing, messages, proxy; peer deps next ^16, react ^19)
 - Package manager: pnpm 10.33.0 (pinned via packageManager). Node 22 (.nvmrc).
+- UI helpers (Step 3): clsx 2.1.1 and tailwind-merge 3.7.0 (README: supports Tailwind v4.0-v4.3), used only
+  through src/lib/utils/cn.ts. Custom @theme keys (glow shadows, ease-snap, animations, duration-fast/base/slow)
+  must be registered in cn.ts when added.
 - Planned (added only in their own steps): zod, server-only, lightweight-charts, Playwright.
 - Before adding ANY dependency: check its official docs and npm for the current version and compatibility
   with Next 16 / React / Tailwind 4, and record it here.
@@ -96,21 +99,41 @@ Tests are colocated as *.test.ts(x).
 ## 9. i18n and RTL
 - Locales: en (default, no browser-language auto-detection), ar (dir="rtl"), uz (Latin script).
 - No hard-coded UI strings. Every key must exist in all three message files.
+  Exception: the dev-only styleguide (/[locale]/styleguide, 404 in production) uses English labels.
+  Text rendered by the UI components themselves still comes from the message files.
 - Use logical CSS only (ms-/me-/ps-/pe-/start-/end-, text-start/text-end). Never left/right.
 - Wrap tickers, prices and percentages in <bdi> (or dir="ltr") inside RTL text. Charts stay LTR.
-- Format numbers, currency and dates with Intl using the active locale.
+- Format numbers, currency and dates for the active locale, always through src/lib/i18n/format.ts.
 - Directional icons (arrows, chevrons) mirror in RTL.
 - i18n files: src/lib/i18n/{config,routing,navigation,request,format}.ts; proxy at src/proxy.ts;
   messages in src/messages/{en,ar,uz}.json.
 - Adding text: add the key to en.json, ar.json and uz.json in the same change; the parity test enforces it.
-- Intl locales: en-US, ar-u-nu-latn (Arabic with Latin digits), uz-Latn. Always format through
-  src/lib/i18n/format.ts.
+- Number formatting is runtime-independent: Intl is only called with en-US; separators and compact suffixes
+  come from src/lib/i18n/number-format-spec.ts. Never pass ar/uz locales to Intl in code that runs on the
+  client (hydration mismatch). Dates will follow the same rule when added.
 - Uzbek Latin orthography: use oʻ / gʻ with U+02BB and U+02BC for the tutuq belgisi; never a plain ASCII apostrophe.
 
 ## 10. Design
 - Concept: "Ticker Noir" (dark, precise trading-terminal mood with living numbers) plus a
   "Constellation" star-map hero on the home page.
-- Design tokens are defined in Tailwind's @theme (Step 3). Components use tokens only. No raw hex values.
+- Design tokens are defined in Tailwind's @theme in src/app/globals.css (Step 3). Components use tokens only.
+  No raw hex values outside globals.css (exceptions: siteConfig.themeColor and src/app/icon.svg, both
+  checked against the tokens by src/config/design-tokens.test.ts). Tailwind's default palette is removed.
+  - Colors: bg, surface-1, surface-2, surface-3, line, fg, fg-muted, fg-subtle, brand, brand-fg, up, down,
+    cosmos. Text tokens (fg, fg-muted, fg-subtle, up, down, brand, cosmos) reach 4.5:1 on bg, surface-1 and
+    surface-2; brand-fg on brand too. The contrast test fails CI otherwise. line is decorative only (1.3-1.5:1):
+    a form-control edge must use fg-subtle.
+  - Shadows: shadow-glow-{brand,up,down,cosmos}. Radius: rounded-sm 4px, rounded-md 8px, rounded-lg 12px.
+  - Motion: duration-fast 120ms, duration-base 200ms, duration-slow 400ms, ease-snap
+    cubic-bezier(0.2, 0.8, 0.2, 1). Animations: animate-shimmer, animate-flash-{up,down}, animate-roll-{up,down}.
+  - Dark only (color-scheme: dark). Focus ring: 2px brand outline + 2px offset, set globally on :focus-visible.
+- Fonts (src/lib/fonts.ts, next/font/google, self-hosted): font-display = Unbounded (headings/hero),
+  font-sans = Noto Sans (body/UI), font-mono = JetBrains Mono (numbers, always with tabular-nums).
+  Arabic ([lang="ar"]) uses IBM Plex Sans Arabic for both font-display and font-sans; numbers stay mono.
+- font-mono is only for numbers and tickers, never for words (JetBrains Mono lacks U+02BB).
+- UI primitives live in src/components/ui: Button, Card, Badge, Skeleton, PriceChange, TickerNumber, icons.
+- Use TickerNumber (live, animated) or PriceChange (percentage move) for all live numbers.
+- Vertical arrows (price up/down) never mirror; chevrons do (ChevronIcon direction="start" | "end").
 - Price direction is never shown by color alone: always use sign + arrow + color.
 - Respect prefers-reduced-motion everywhere.
 - Mobile-first. Check at 360, 768 and 1440 px. Accessibility target: WCAG 2.2 AA (keyboard navigation,
@@ -144,3 +167,18 @@ Tests are colocated as *.test.ts(x).
 - 2026-09-25: i18n via next-intl, localePrefix always, no Accept-Language detection,
   Arabic uses Latin digits. Locale is URL-only: next-intl ties cookie reading to the same
   localeDetection flag as Accept-Language, so the locale cookie is disabled and "/" always goes to /en.
+- 2026-09-26: Design system "Ticker Noir": dark-only MVP. Palette: bg #07090D, surfaces #0C1017 / #121823 /
+  #1A2230, line #243044, fg #E8EDF5, fg-muted #9AA6B8, fg-subtle #778190, brand amber #FFB547 (brand-fg
+  #07090D), up #3DDC97, down coral #FF6B5B, cosmos #7C8CFF. Fonts: Unbounded (display), IBM Plex Sans (body),
+  IBM Plex Sans Arabic (ar), JetBrains Mono (numbers). Currency is always shown as "$" (narrowSymbol plus
+  normalizing the currency part, because CLDR's Arabic narrow symbol is still "US$").
+- 2026-09-26: Number formatting is deterministic: Intl.NumberFormat is only called with en-US and its parts
+  are mapped through our own per-locale table (src/lib/i18n/number-format-spec.ts), because Intl locale data
+  differs between runtimes (Chromium has no Uzbek number data) and broke hydration. Currency is always a "$"
+  prefix with the minus before it ("-$12.50"). Separators: en "," and "."; ar Latin digits with "," and ".";
+  uz national standard U+00A0 group and "," decimal. Compact suffixes: en K/M/B/T; ar ألف/مليون/مليار/تريليون;
+  uz ming/mln/mlrd/trln (ar/uz with a space). NaN/Infinity render as "—". Formatted numbers carry no bidi
+  marks; direction comes from markup (<bdi dir="ltr">).
+- 2026-09-26: Body font is Noto Sans instead of IBM Plex Sans, whose U+02BB/U+02BC glyphs are wider than
+  "o" and leave visible gaps in Uzbek. IBM Plex Sans Arabic, Unbounded and JetBrains Mono stay; JetBrains
+  Mono lacks U+02BB, so font-mono is used only for numbers.

@@ -15,7 +15,9 @@
       "uz": "Oʻzbekcha"
     }
   },
-  "FormatPreview": {
-    "heading": "Raqamlarni formatlash namunasi"
+  "PriceChange": {
+    "up": "Oʻsish",
+    "down": "Pasayish",
+    "unchanged": "Oʻzgarishsiz"
   }
 }

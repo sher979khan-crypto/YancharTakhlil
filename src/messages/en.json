@@ -15,7 +15,9 @@
       "uz": "Oʻzbekcha"
     }
   },
-  "FormatPreview": {
-    "heading": "Number formatting preview"
+  "PriceChange": {
+    "up": "Up",
+    "down": "Down",
+    "unchanged": "Unchanged"
   }
 }

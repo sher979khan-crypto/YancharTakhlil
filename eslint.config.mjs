@@ -6,6 +6,12 @@ import eslintConfigPrettier from "eslint-config-prettier/flat";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/no-non-null-assertion": "error",
+    },
+  },
   // Must stay last so it can turn off rules that conflict with Prettier.
   eslintConfigPrettier,
   // Override default ignores of eslint-config-next.

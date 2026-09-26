@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
+import { siteConfig } from "@/config/site";
+import { fontVariables } from "@/lib/fonts";
 import { getDir } from "@/lib/i18n/config";
 import { routing } from "@/lib/i18n/routing";
 
@@ -12,6 +14,12 @@ import "../globals.css";
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
+
+// Dark-only MVP: the browser chrome and native controls match the page.
+export const viewport: Viewport = {
+  themeColor: siteConfig.themeColor,
+  colorScheme: "dark",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Metadata");
@@ -36,8 +44,8 @@ export default async function LocaleLayout({ children, params }: Props) {
   }
 
   return (
-    <html lang={locale} dir={getDir(locale)}>
-      <body>
+    <html lang={locale} dir={getDir(locale)} className={fontVariables}>
+      <body className="font-sans text-fg antialiased">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
