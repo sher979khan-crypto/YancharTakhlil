@@ -49,6 +49,14 @@ describe("parseServerEnv", () => {
     });
   });
 
+  it("reads the CoinGecko plan case-insensitively", () => {
+    expect(parseServerEnv({ COINGECKO_API_PLAN: "Demo" }).env.COINGECKO_API_PLAN).toBe("demo");
+    expect(parseServerEnv({ COINGECKO_API_PLAN: " PRO " })).toMatchObject({
+      env: { COINGECKO_API_PLAN: "pro" },
+      invalid: [],
+    });
+  });
+
   it("falls back to the default for each invalid value without touching the others", () => {
     const { env, invalid } = parseServerEnv({
       MARKET_DATA_PROVIDER: "coingeko",

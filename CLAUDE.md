@@ -49,7 +49,7 @@ src/
   lib/domain/                 zod schemas, inferred types and pure business logic (market, errors,
                               coin-filter). No I/O.
   lib/providers/              Data-access interfaces, get-market-data-provider.ts, the provider contract
-                              suite, and implementations (fixture/, json/, memory/; coingecko/ in Step 6)
+                              suite, and implementations (fixture/, json/, memory/, coingecko/)
   lib/env/                    server-env.ts: zod-validated server env (server-only)
   lib/ai/core/                Shared OpenRouter client, guards (rate limit, budget, input limits)
   lib/ai/agents/assistant/    "Kotib" agent: prompt, config, tools
@@ -75,6 +75,13 @@ Tests are colocated as *.test.ts(x).
 - Provider selection lives in get-market-data-provider.ts. Every MarketResult carries `source`; when
   source === "fixture" the UI must show the demo-data banner. Never present fixture data as real.
 - Every MarketDataProvider must pass runMarketDataProviderContract (market-data-provider.contract.ts).
+- Provider selection (MARKET_DATA_PROVIDER): auto + key -> CoinGecko; auto without key -> fixture;
+  fixture -> fixture; coingecko without key -> MarketDataError CONFIG (never silently demo data).
+- CoinGecko quota: ONE /coins/markets call (per_page=250, page=1, price_change_percentage=1h,24h,7d,30d)
+  feeds both getTopCoins and getCoinDetail. Never call /coins/{id}. Only market_chart (daily) and
+  /global cost extra calls. The API key travels only in the x-cg-{demo,pro}-api-key header.
+- CoinGecko calls use Next's data cache (fetch `next: { revalidate: cacheTtl.X, tags }`), plus an
+  in-process last-good cache that serves stale: true on upstream failure (best-effort per instance).
 - Static JSON is loaded with static imports (not fs) and zod-validated when the module loads.
 - No route-level loading.tsx above any page that can call notFound(): it makes the response stream and
   turns 404 into 200. Show loading states with <Suspense> inside the page, after validation/notFound checks.
@@ -231,3 +238,9 @@ Tests are colocated as *.test.ts(x).
   "ids" array is filled with CoinGecko ids in Step 6 for precise matching.
 - 2026-09-26: Providers are verified by a shared Vitest contract suite; Step 6 reuses it for CoinGecko
   with mocked fetch. Invalid env values fall back to defaults with one warning naming the variable only.
+- 2026-09-26: Step 6. CoinGecko adapter (server-only). One /coins/markets page feeds the top list and
+  every coin detail (no /coins/{id}); charts use market_chart?interval=daily, bucketed by UTC date
+  (last point per day, last N days). Selection: "coingecko" without a key throws CONFIG. COINGECKO_API_PLAN
+  is case-insensitive. HTTP: 8 s timeout (not retried), one retry for 429 (Retry-After, max 3 s) or
+  5xx/network (500 ms). The "ids" exclusion list holds CoinGecko ids verified against /coins/markets.
+  /coins/markets omits wrapped/staked (rehypothecated) tokens by default and they have a null rank.

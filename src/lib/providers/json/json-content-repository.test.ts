@@ -11,7 +11,8 @@ describe("createJsonContentRepository", () => {
     expect(ExcludedCoinsSchema.parse(excluded)).toEqual(excluded);
     expect(excluded.stablecoins).toContain("usdt");
     expect(excluded.wrapped).toContain("wbtc");
-    expect(excluded.ids).toEqual([]);
+    expect(excluded.ids).toEqual(expect.arrayContaining(["tether", "usd-coin", "wrapped-bitcoin"]));
+    expect(new Set(excluded.ids).size).toBe(excluded.ids.length);
   });
 
   it("has no duplicate symbols across groups", () => {

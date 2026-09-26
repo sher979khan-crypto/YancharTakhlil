@@ -7,7 +7,12 @@ const optionalValue = z.string().min(1).optional();
 export const ServerEnvSchema = z.object({
   MARKET_DATA_PROVIDER: z.enum(["auto", "fixture", "coingecko"]).default("auto"),
   COINGECKO_API_KEY: optionalValue,
-  COINGECKO_API_PLAN: z.enum(["demo", "pro"]).default("demo"),
+  // Case-insensitive: "Demo" in a dashboard is still the demo plan.
+  COINGECKO_API_PLAN: z
+    .string()
+    .toLowerCase()
+    .pipe(z.enum(["demo", "pro"]))
+    .default("demo"),
   OPENROUTER_API_KEY_ASSISTANT: optionalValue,
   OPENROUTER_API_KEY_ANALYST: optionalValue,
   OPENROUTER_MODEL_ASSISTANT: optionalValue,

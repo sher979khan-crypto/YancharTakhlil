@@ -1,28 +1,37 @@
 import "server-only";
 
-import type { DataSource } from "@/lib/domain/market";
+import { MarketDataError } from "@/lib/domain/errors";
 import { getServerEnv, type ServerEnv } from "@/lib/env/server-env";
 
+import { createCoinGeckoMarketDataProvider } from "./coingecko/coingecko-market-data-provider";
 import { createFixtureMarketDataProvider } from "./fixture/fixture-market-data-provider";
 import type { MarketDataProvider } from "./market-data-provider";
 
-export const COINGECKO_NOT_READY_WARNING =
-  "[market-data] CoinGecko adapter arrives in Step 6; using fixture data.";
+export type MarketDataSelection = { source: "fixture" } | { source: "coingecko"; apiKey: string };
 
-export type MarketDataSelection = {
-  source: DataSource;
-  /** Logged once when the env asks for something this build cannot provide yet. */
-  warning: string | null;
-};
-
-/** Pure provider choice for an env. Until Step 6 every path ends in the fixture provider. */
+/**
+ * Pure provider choice for an env:
+ * - "fixture" → fixture; "auto" → CoinGecko with a key, fixture (demo banner) without one;
+ * - "coingecko" without a key throws CONFIG: demo data is never served when real data was asked for.
+ */
 export function selectMarketDataSource(
   env: Pick<ServerEnv, "MARKET_DATA_PROVIDER" | "COINGECKO_API_KEY">,
 ): MarketDataSelection {
-  const wantsCoinGecko =
-    env.MARKET_DATA_PROVIDER === "coingecko" ||
-    (env.MARKET_DATA_PROVIDER === "auto" && env.COINGECKO_API_KEY !== undefined);
-  return { source: "fixture", warning: wantsCoinGecko ? COINGECKO_NOT_READY_WARNING : null };
+  const apiKey = env.COINGECKO_API_KEY;
+  switch (env.MARKET_DATA_PROVIDER) {
+    case "fixture":
+      return { source: "fixture" };
+    case "auto":
+      return apiKey === undefined ? { source: "fixture" } : { source: "coingecko", apiKey };
+    case "coingecko":
+      if (apiKey === undefined) {
+        throw new MarketDataError(
+          "CONFIG",
+          "MARKET_DATA_PROVIDER is coingecko but COINGECKO_API_KEY is not set",
+        );
+      }
+      return { source: "coingecko", apiKey };
+  }
 }
 
 let provider: MarketDataProvider | undefined;
@@ -30,9 +39,15 @@ let provider: MarketDataProvider | undefined;
 /** The market data provider for the current env, created once per server process. */
 export function getMarketDataProvider(): MarketDataProvider {
   if (!provider) {
-    const { warning } = selectMarketDataSource(getServerEnv());
-    if (warning) console.warn(warning);
-    provider = createFixtureMarketDataProvider();
+    const env = getServerEnv();
+    const selection = selectMarketDataSource(env);
+    provider =
+      selection.source === "coingecko"
+        ? createCoinGeckoMarketDataProvider({
+            apiKey: selection.apiKey,
+            plan: env.COINGECKO_API_PLAN,
+          })
+        : createFixtureMarketDataProvider();
   }
   return provider;
 }

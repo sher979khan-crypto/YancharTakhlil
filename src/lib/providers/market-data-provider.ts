@@ -8,8 +8,8 @@ import type {
 } from "@/lib/domain/market";
 
 /**
- * The only way the app reads market data. Implementations: fixture (sample data, no key) and,
- * from Step 6, CoinGecko. Failures throw MarketDataError.
+ * The only way the app reads market data. Implementations: fixture (sample data, no key) and
+ * CoinGecko. Failures throw MarketDataError.
  */
 export interface MarketDataProvider {
   /** The public top list: excluded coins removed, sorted and re-ranked 1..n, at most 99 coins. */
