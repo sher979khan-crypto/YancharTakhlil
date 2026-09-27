@@ -71,9 +71,18 @@
     "eurs",
     "eurt",
     "steur",
-    "usx"
+    "usx",
+    "eurc",
+    "ausd",
+    "crvusd",
+    "reusd",
+    "apxusd",
+    "usdai",
+    "eurcv",
+    "apyusd",
+    "sofid"
   ],
-  "wrapped": ["wbtc", "weth", "steth", "cbbtc"],
+  "wrapped": ["wbtc", "weth", "steth", "cbbtc", "wsteth", "weeth"],
   "tokenizedAssets": [
     "xaut",
     "paxg",
@@ -84,7 +93,11 @@
     "eursafo",
     "usyc",
     "ustb",
-    "ylds"
+    "ylds",
+    "kau",
+    "ousg",
+    "ustbl",
+    "safo"
   ],
   "other": ["stable", "rain"]
 }

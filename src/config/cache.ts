@@ -4,6 +4,8 @@ export const cacheTtl = {
   coinDetail: 120,
   dailyPrices: 1800,
   globalMarket: 600,
+  /** CDN lifetime of a /api/v1 404, so junk ids do not reach the provider on every request. */
+  apiNotFound: 60,
   /** Per coin + locale. */
   aiAnalysis: 900,
   /** How often client components poll /api/v1 for fresh prices. */

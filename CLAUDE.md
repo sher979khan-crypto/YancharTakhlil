@@ -38,7 +38,8 @@
 
 ## 5. Folder structure
 src/
-  app/                        Routes only; keep thin. Later: app/api/v1/...
+  app/                        Routes only; keep thin.
+    api/v1/                   Public read API (GET only): coins, coins/[id], coins/[id]/chart, global
     [locale]/                 Root layout (shell), not-found, error, [...rest] catch-all (unknown URL -> 404)
     [locale]/(pages)/         All pages (route group, so the layout's title template applies to the
                               home page too). No route-level loading.tsx (see §6).
@@ -47,7 +48,9 @@ src/
   components/features/<name>/ Feature components (coins, coin-detail, analyst, assistant, hero,
                               site-header, site-footer, skip-link, brand, locale-switcher)
   lib/domain/                 zod schemas, inferred types and pure business logic (market, errors,
-                              coin-filter). No I/O.
+                              coin-filter, stablecoin-watch). No I/O.
+  lib/api/                    /api/v1 contract (contract.ts: zod schemas, no server-only, shared with the
+                              client), params.ts, responses.ts (ok/fail, server-only), cache-headers.ts
   lib/providers/              Data-access interfaces, get-market-data-provider.ts, the provider contract
                               suite, and implementations (fixture/, json/, memory/, coingecko/)
   lib/env/                    server-env.ts: zod-validated server env (server-only)
@@ -71,6 +74,17 @@ Tests are colocated as *.test.ts(x).
 - Interfaces: MarketDataProvider, ContentRepository, ChatHistoryStore.
 - Server Components call providers directly. Never fetch your own /api routes from the server.
 - Route Handlers live under /api/v1/* and serve client polling, chat, analysis and future clients.
+  Server Components never call /api routes; they call the provider directly.
+- API contract (src/lib/api/contract.ts): success { data, meta: { source, fetchedAt, stale } },
+  error { error: { code, message } }. Handlers stay thin: parse params (params.ts) ->
+  getMarketDataProvider() -> ok(result, cacheTtl.X) / fail(error). The API returns raw numbers, no locale.
+- Status mapping (responses.ts): bad input (ApiInputError) 400 INVALID_INPUT; NOT_FOUND 404; RATE_LIMITED
+  503 + Retry-After: 30; UPSTREAM/INVALID_RESPONSE 502 UPSTREAM_ERROR; CONFIG 500 CONFIG_ERROR; anything
+  else 500 INTERNAL (logged server-side by name + message). Public messages are fixed strings.
+- Cache headers only via src/lib/api/cache-headers.ts: success "public, max-age=0, s-maxage=<ttl>,
+  stale-while-revalidate=<ttl*5>"; 404 "public, s-maxage=60" (cacheTtl.apiNotFound); other errors no-store.
+- Dynamic route handler params are typed inline ({ params: Promise<{ id: string }> }), not with the
+  generated RouteContext global, so `pnpm typecheck` passes on a clean clone.
 - Validate all external data and all request input with zod.
 - Provider selection lives in get-market-data-provider.ts. Every MarketResult carries `source`; when
   source === "fixture" the UI must show the demo-data banner. Never present fixture data as real.
@@ -89,7 +103,7 @@ Tests are colocated as *.test.ts(x).
   exhaust the API quota).
 - Only coin IDs from the current top-99 list are accepted; everything else returns 404.
 - Cache TTLs (single source: src/config/cache.ts): markets 120s, coin detail 120s, daily history 30m,
-  global market 10m, AI analysis 15m per coin+locale; client polling every 60s.
+  global market 10m, API 404 60s, AI analysis 15m per coin+locale; client polling every 60s.
 - API error shape: { "error": { "code": string, "message": string } }. Never expose stack traces or
   upstream error details to the client.
 
@@ -244,3 +258,13 @@ Tests are colocated as *.test.ts(x).
   is case-insensitive. HTTP: 8 s timeout (not retried), one retry for 429 (Retry-After, max 3 s) or
   5xx/network (500 ms). The "ids" exclusion list holds CoinGecko ids verified against /coins/markets.
   /coins/markets omits wrapped/staked (rehypothecated) tokens by default and they have a null rank.
+- 2026-09-27: Step 7. getDailyPrices returns UP TO `range` points (ascending, unique dates); fewer than
+  2 is INVALID_RESPONSE. The fixture still returns full series.
+- 2026-09-27: Exclusions extended (symbols): stablecoins eurc, ausd, crvusd, reusd, apxusd, usdai, eurcv,
+  apyusd, sofid (SoFiUSD is a bank-issued USD stablecoin, so it is a stablecoin, not a tokenized asset);
+  tokenizedAssets kau, ousg, ustbl, safo; wrapped wsteth, weeth.
+- 2026-09-27: findPossibleStablecoins (|price - 1| <= 0.02 and |7d change| <= 0.5%) only logs
+  "[coingecko] possible stablecoin not excluded: SYMBOL (id)" once per id per process. Exclusion stays manual.
+- 2026-09-27: Public read API /api/v1 (GET only; other methods get Next's automatic 405). One success and
+  one error shape (src/lib/api/contract.ts), CDN cache headers from cache-headers.ts. Only ApiInputError
+  (params.ts) maps to 400; a stray ZodError is a server bug and maps to 500 INTERNAL.

@@ -120,6 +120,25 @@ describe("createCoinGeckoMarketDataProvider: top list and detail", () => {
     );
   });
 
+  it("warns once per id about a possible stablecoin, without excluding it", async () => {
+    const { provider, fetchImpl, log, advance } = setup();
+    const tether = markets.find((item) => item.id === "tether");
+    if (!tether) throw new Error("fixture has no tether");
+    const newStable = { ...tether, id: "new-dollar", symbol: "ndusd", name: "New Dollar" };
+    fetchImpl.mockImplementation(async () => jsonResponse([...markets, newStable]));
+
+    const { data } = await provider.getTopCoins();
+    expect(data.map((coin) => coin.id)).toContain("new-dollar");
+    advance(cacheTtl.markets);
+    await provider.getTopCoins();
+
+    const warnings = log.mock.calls.filter(([line]) => line.includes("possible stablecoin"));
+    expect(warnings).toEqual([
+      ["[coingecko] possible stablecoin not excluded: NDUSD (new-dollar)"],
+    ]);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it("rejects a malformed envelope with INVALID_RESPONSE", async () => {
     const { provider, fetchImpl } = setup();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ error: "not a list" }));
@@ -205,13 +224,33 @@ describe("createCoinGeckoMarketDataProvider: daily prices", () => {
     expect(paths().filter((path) => path.endsWith("/market_chart"))).toHaveLength(2);
   });
 
-  it("rejects a series shorter than the range", async () => {
-    const { provider, fetchImpl } = setup();
+  function serveChart(fetchImpl: ReturnType<typeof setup>["fetchImpl"], prices: number[][]) {
     fetchImpl.mockImplementation(async (input) =>
       new URL(input).pathname.endsWith("/market_chart")
-        ? jsonResponse({ prices: [[FIXTURE_NOW, 1]], total_volumes: [] })
+        ? jsonResponse({ prices, total_volumes: [] })
         : routeFixture(input),
     );
+  }
+
+  it("returns a series shorter than the range as is (young coin)", async () => {
+    const { provider, fetchImpl } = setup();
+    const day = 86_400_000;
+    serveChart(fetchImpl, [
+      [FIXTURE_NOW - 2 * day, 1],
+      [FIXTURE_NOW - day, 2],
+      [FIXTURE_NOW, 3],
+    ]);
+    const result = await provider.getDailyPrices("bitcoin", 7);
+    expect(result.data.map((point) => [point.date, point.closeUsd])).toEqual([
+      ["2026-09-24", 1],
+      ["2026-09-25", 2],
+      ["2026-09-26", 3],
+    ]);
+  });
+
+  it("rejects a series with fewer than 2 points", async () => {
+    const { provider, fetchImpl } = setup();
+    serveChart(fetchImpl, [[FIXTURE_NOW, 1]]);
     await expect(provider.getDailyPrices("bitcoin", 7)).rejects.toMatchObject({
       code: "INVALID_RESPONSE",
     });

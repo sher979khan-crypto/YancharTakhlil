@@ -18,7 +18,7 @@ import {
 } from "@/lib/domain/market";
 
 import { createJsonContentRepository } from "./json/json-content-repository";
-import type { MarketDataProvider } from "./market-data-provider";
+import { MIN_DAILY_POINTS, type MarketDataProvider } from "./market-data-provider";
 
 type ContractOptions = {
   /** The list the provider was built with. Defaults to src/data/excluded-coins.json. */
@@ -80,15 +80,16 @@ export function runMarketDataProviderContract(
       expect(result.data).toMatchObject({ id: first.id, symbol: first.symbol, rank: first.rank });
     });
 
-    it.each(CHART_RANGES)("returns exactly %i ascending daily points", async (range) => {
+    it.each(CHART_RANGES)("returns 2..%i ascending, unique daily points", async (range) => {
       const [first] = topCoins;
       if (!first) throw new Error("empty top list");
       const result = marketResultSchema(z.array(DailyPriceSchema)).parse(
         await provider.getDailyPrices(first.id, range),
       );
       const dates = result.data.map((point) => point.date);
-      expect(dates).toHaveLength(range);
-      // ISO dates compare correctly as strings.
+      expect(dates.length).toBeGreaterThanOrEqual(MIN_DAILY_POINTS);
+      expect(dates.length).toBeLessThanOrEqual(range);
+      // ISO dates compare correctly as strings; strictly ascending also rules out duplicates.
       expect(dates.every((date, i) => i === 0 || (dates[i - 1] ?? "") < date)).toBe(true);
     });
 

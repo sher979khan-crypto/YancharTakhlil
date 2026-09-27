@@ -3,6 +3,7 @@ import "server-only";
 import { cacheTtl } from "@/config/cache";
 import { filterTopCoins, isAllowedCoinId } from "@/lib/domain/coin-filter";
 import { MarketDataError } from "@/lib/domain/errors";
+import { findPossibleStablecoins } from "@/lib/domain/stablecoin-watch";
 import {
   CoinSchema,
   type ChartRange,
@@ -14,7 +15,7 @@ import {
 
 import type { ContentRepository } from "../content-repository";
 import { createJsonContentRepository } from "../json/json-content-repository";
-import type { MarketDataProvider } from "../market-data-provider";
+import { MIN_DAILY_POINTS, type MarketDataProvider } from "../market-data-provider";
 
 import {
   COINGECKO_MARKETS_PER_PAGE,
@@ -76,6 +77,16 @@ export function createCoinGeckoMarketDataProvider({
   });
   const cache = createStaleCache({ now, log });
   const excluded = contentRepository.getExcludedCoins();
+  // The provider is a per-process singleton, so this makes each warning once per id per process.
+  const reportedStablecoinIds = new Set<string>();
+
+  function warnAboutPossibleStablecoins(coins: readonly CoinDetail[]) {
+    for (const coin of findPossibleStablecoins(coins)) {
+      if (reportedStablecoinIds.has(coin.id)) continue;
+      reportedStablecoinIds.add(coin.id);
+      log(`[coingecko] possible stablecoin not excluded: ${coin.symbol} (${coin.id})`);
+    }
+  }
 
   function result<T>({ data, fetchedAt }: Fetched<T>, stale: boolean): MarketResult<T> {
     // Cached values are shared by every request, so each caller gets its own copy.
@@ -106,6 +117,8 @@ export function createCoinGeckoMarketDataProvider({
       }
       const details = filterTopCoins(mapped.coins, excluded);
       if (details.length === 0) throw invalid("CoinGecko markets response has no usable coins");
+      // Warn only: the exclusion list stays a reviewed, manual decision.
+      warnAboutPossibleStablecoins(details);
       return { data: { details }, fetchedAt: receivedAt };
     });
   }
@@ -147,8 +160,10 @@ export function createCoinGeckoMarketDataProvider({
           const chart = MarketChartResponseSchema.safeParse(body);
           if (!chart.success) throw invalid("CoinGecko chart response is malformed");
           const points = mapDailyPrices(chart.data, range);
-          // The interface promises exactly `range` points; a short series is not silently padded.
-          if (points.length !== range) throw invalid("CoinGecko chart has too few daily points");
+          // A short series (young coin) is returned as is, never padded; one point is no chart.
+          if (points.length < MIN_DAILY_POINTS) {
+            throw invalid("CoinGecko chart has too few daily points");
+          }
           return { data: points, fetchedAt: receivedAt };
         },
       );
