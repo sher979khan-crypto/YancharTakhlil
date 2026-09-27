@@ -11,7 +11,11 @@ import { navItems } from "@/lib/navigation/nav-items";
 
 import { NavLink } from "./nav-link";
 
-/** Disclosure (not a modal): no focus trap, the panel follows the button in the tab order. */
+/**
+ * Disclosure (not a modal): no focus trap, the panel follows the button in the tab order.
+ * display: contents makes the button and the panel items of the header bar, so the panel
+ * (basis-full) wraps onto its own row inside the glass pill.
+ */
 export function MobileMenu() {
   const t = useTranslations("Nav");
   const locale = useLocale();
@@ -42,7 +46,7 @@ export function MobileMenu() {
   }
 
   return (
-    <div className="md:hidden">
+    <div className="contents md:hidden">
       <Button
         ref={buttonRef}
         variant="ghost"
@@ -58,7 +62,7 @@ export function MobileMenu() {
         id={panelId}
         hidden={!open}
         onClick={handlePanelClick}
-        className="absolute inset-x-0 top-full border-b border-line bg-surface-1 px-4 py-4 shadow-lg"
+        className="basis-full border-t border-glass-border pt-3 pb-4"
       >
         <nav aria-label={t("label")}>
           <ul className="flex flex-col gap-1">
@@ -71,7 +75,7 @@ export function MobileMenu() {
             ))}
           </ul>
         </nav>
-        <div className="mt-4 border-t border-line pt-4">
+        <div className="mt-3 border-t border-glass-border pt-4">
           <LocaleSwitcher />
         </div>
       </div>

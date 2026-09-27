@@ -2,14 +2,19 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils/cn";
 
+import { glassSurfaceClassName } from "./glass";
 import { SpinnerIcon } from "./icons";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "bg-brand text-brand-fg hover:shadow-glow-brand",
-  secondary: "border border-line bg-surface-2 text-fg hover:bg-surface-3",
+  // The inset highlight is a 1px lit top edge; it never sits under the label.
+  primary: "bg-brand text-brand-fg inset-shadow-highlight hover:shadow-glow-brand",
+  secondary: cn(
+    glassSurfaceClassName,
+    "border-glass-border-strong text-fg hover:bg-surface-3 hover:bg-none",
+  ),
   ghost: "text-fg-muted hover:bg-surface-2 hover:text-fg",
 };
 
@@ -37,7 +42,7 @@ export function buttonClassName({
   return cn(
     "inline-flex items-center justify-center rounded-md font-medium whitespace-nowrap select-none",
     "transition-[background-color,color,box-shadow] duration-fast ease-snap",
-    "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",
+    "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:inset-shadow-none",
     variantClasses[variant],
     sizeClasses[size],
     className,

@@ -6,7 +6,8 @@
   "Home": {
     "title": "Welcome to Yanchar Takhlil",
     "subtitle": "Track the top 99 cryptocurrencies by market cap, with live prices and AI-assisted analysis.",
-    "metaTitle": "Top 99 crypto prices"
+    "metaTitle": "Top 99 crypto prices",
+    "exploreMarkets": "Explore markets"
   },
   "LocaleSwitcher": {
     "label": "Language",
@@ -85,5 +86,11 @@
     "title": "Something went wrong",
     "description": "We could not load this page. Please try again.",
     "retry": "Try again"
+  },
+  "DemoBanner": {
+    "label": "Demo data — not real prices"
+  },
+  "SearchInput": {
+    "clear": "Clear search"
   }
 }

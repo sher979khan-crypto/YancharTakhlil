@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 /*
- * "Ticker Noir" design tokens. This file is the only place raw color values may appear.
- * Contrast of every text/background pair is enforced by src/config/design-tokens.test.ts.
+ * "Glass & Crystal" design tokens (evolved from "Ticker Noir"). This file is the only place raw
+ * color values may appear. Contrast of every text/background pair, including text on glass
+ * blended over the brightest page background, is enforced by src/config/design-tokens.test.ts.
  */
 @theme {
   /* Drop Tailwind's default palette so components can only use the tokens below. */
@@ -16,14 +17,30 @@
 
   --color-fg: #e8edf5;
   --color-fg-muted: #9aa6b8;
-  /* Darkest value in the fg-muted hue that still reaches 4.5:1 on bg, surface-1 and surface-2. */
-  --color-fg-subtle: #778190;
+  /* Darkest value in the fg-muted hue that still reaches 4.5:1 on the brightest glass. */
+  --color-fg-subtle: #7e8898;
 
   --color-brand: #ffb547;
   --color-brand-fg: #07090d;
   --color-up: #3ddc97;
   --color-down: #ff6b5b;
   --color-cosmos: #7c8cff;
+  /* Crystal lines, hero and the Kotib accent; also a text token. */
+  --color-ice: #7fe3ff;
+
+  /*
+   * Glass. The mixes are parsed by design-tokens.test.ts (keep the color-mix form). Glass fills
+   * are translucent surface-1; the highlight is the top stop of the inner sheen gradient.
+   */
+  --color-glass-fill: color-mix(in srgb, var(--color-surface-1) 55%, transparent);
+  --color-glass-fill-strong: color-mix(in srgb, var(--color-surface-1) 75%, transparent);
+  --color-glass-border: color-mix(in srgb, white 12%, transparent);
+  --color-glass-border-strong: color-mix(in srgb, white 20%, transparent);
+  --color-glass-highlight: color-mix(in srgb, white 6%, transparent);
+
+  /* Backdrop blur: glass-sm under 640px, glass from sm up. */
+  --blur-glass-sm: 8px;
+  --blur-glass: 16px;
 
   /* Fonts: the --font-*-face variables are set by next/font (src/lib/fonts.ts) on <html>. */
   --font-display:
@@ -37,11 +54,32 @@
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
 
   --shadow-glow-brand: 0 0 24px -4px color-mix(in srgb, var(--color-brand) 35%, transparent);
   --shadow-glow-up: 0 0 24px -4px color-mix(in srgb, var(--color-up) 35%, transparent);
   --shadow-glow-down: 0 0 24px -4px color-mix(in srgb, var(--color-down) 35%, transparent);
   --shadow-glow-cosmos: 0 0 24px -4px color-mix(in srgb, var(--color-cosmos) 35%, transparent);
+  --shadow-glow-ice: 0 0 24px -4px color-mix(in srgb, var(--color-ice) 35%, transparent);
+  /* Deep, soft shadow for floating glass; glass-lifted is the scrolled header. */
+  --shadow-glass:
+    0 1px 2px color-mix(in srgb, var(--color-bg) 60%, transparent),
+    0 16px 40px -12px color-mix(in srgb, var(--color-bg) 85%, transparent);
+  --shadow-glass-lifted:
+    0 2px 4px color-mix(in srgb, var(--color-bg) 70%, transparent),
+    0 24px 56px -12px color-mix(in srgb, var(--color-bg) 95%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-ice) 8%, transparent);
+
+  /* Top inner highlight: the lit edge of a raised surface (primary button, active chip). */
+  --inset-shadow-highlight: inset 0 1px 0 color-mix(in srgb, white 35%, transparent);
+  --inset-shadow-highlight-soft: inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
+
+  /* Glow around ice illustrations (404 shard). */
+  --drop-shadow-glow-ice: 0 0 16px color-mix(in srgb, var(--color-ice) 45%, transparent);
+
+  /* Soft ice glow behind display text; the text itself stays solid fg. */
+  --text-shadow-glow-ice: 0 0 28px color-mix(in srgb, var(--color-ice) 35%, transparent);
 
   --transition-duration-fast: 120ms;
   --transition-duration-base: 200ms;
@@ -55,6 +93,7 @@
   --animate-flash-down: flash-down 600ms var(--ease-snap);
   --animate-roll-up: roll-up 400ms var(--ease-snap);
   --animate-roll-down: roll-down 400ms var(--ease-snap);
+  --animate-float: float 9s ease-in-out infinite;
 
   @keyframes shimmer {
     from {
@@ -97,11 +136,42 @@
       opacity: 0;
     }
   }
+
+  @keyframes float {
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+}
+
+/*
+ * Solid fallback for glass. Tailwind 4.3 has no built-in variant for either condition, so this
+ * one covers both: browsers without backdrop-filter (translucent glass would show sharp content
+ * behind it) and users who asked for less transparency.
+ */
+@custom-variant glass-fallback {
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    @slot;
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    @slot;
+  }
 }
 
 @layer base {
   :root {
     color-scheme: dark;
+    /* Page glows at their peak (parsed by design-tokens.test.ts; keep the color-mix form). */
+    --page-glow-ice: color-mix(in srgb, var(--color-ice) 6%, transparent);
+    --page-glow-brand: color-mix(in srgb, var(--color-brand) 4%, transparent);
+    /* Logical glow positions: ice at top-start, amber at bottom-end; swapped for RTL below. */
+    --page-glow-start: 0%;
+    --page-glow-end: 100%;
+  }
+
+  [dir="rtl"] {
+    --page-glow-start: 100%;
+    --page-glow-end: 0%;
   }
 
   /*
@@ -128,6 +198,35 @@
     background-size: 32px 32px;
     color: var(--color-fg);
     --grid-line: color-mix(in srgb, var(--color-line) 35%, transparent);
+  }
+
+  /*
+   * Glows and vignette on a fixed layer: they stay put while the grid scrolls, and a fixed
+   * element composites cheaply (unlike background-attachment: fixed). z-index -1 paints it above
+   * the canvas background (the body's, propagated) and below all content.
+   */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      radial-gradient(
+        ellipse 70% 55% at var(--page-glow-start) 0%,
+        var(--page-glow-ice),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at var(--page-glow-end) 100%,
+        var(--page-glow-brand),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 120% 90% at 50% 40%,
+        transparent 55%,
+        color-mix(in srgb, var(--color-bg) 70%, transparent)
+      );
   }
 
   ::selection {

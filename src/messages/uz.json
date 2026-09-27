@@ -6,7 +6,8 @@
   "Home": {
     "title": "Yanchar Takhlilga xush kelibsiz",
     "subtitle": "Bozor kapitallashuvi boʻyicha eng yirik 99 ta kriptovalyutani joriy narxlar va sunʼiy intellekt yordamidagi tahlil bilan kuzatib boring.",
-    "metaTitle": "Eng yirik 99 ta kriptovalyuta narxlari"
+    "metaTitle": "Eng yirik 99 ta kriptovalyuta narxlari",
+    "exploreMarkets": "Bozorlarni koʻrish"
   },
   "LocaleSwitcher": {
     "label": "Til",
@@ -85,5 +86,11 @@
     "title": "Nimadir xato ketdi",
     "description": "Bu sahifani yuklab boʻlmadi. Iltimos, qayta urinib koʻring.",
     "retry": "Qayta urinish"
+  },
+  "DemoBanner": {
+    "label": "Demo maʼlumotlar — haqiqiy narxlar emas"
+  },
+  "SearchInput": {
+    "clear": "Qidiruvni tozalash"
   }
 }

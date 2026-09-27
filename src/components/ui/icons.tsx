@@ -99,3 +99,48 @@ export function SpinnerIcon({ className, ...props }: IconProps) {
     </Icon>
   );
 }
+
+/** Drawn with the handle toward the bottom-end, so it mirrors in RTL like the text it leads. */
+export function SearchIcon({ className, ...props }: IconProps) {
+  return (
+    <Icon className={cn("rtl:-scale-x-100", className)} {...props}>
+      <circle cx="7" cy="7" r="4.25" />
+      <path d="m10.25 10.25 3.25 3.25" />
+    </Icon>
+  );
+}
+
+/** Clear-input "x". Same glyph as CloseIcon, named for its job. */
+export function XIcon(props: IconProps) {
+  return <CloseIcon {...props} />;
+}
+
+/** AI marker (Kotib, Tahlilchi). Not directional, so it does not mirror in RTL. */
+export function SparkleIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M7 1.75c.4 2.75 1.5 3.85 4.25 4.25C8.5 6.4 7.4 7.5 7 10.25 6.6 7.5 5.5 6.4 2.75 6 5.5 5.6 6.6 4.5 7 1.75Z" />
+      <path d="M12.25 9.5v4M10.25 11.5h4" />
+    </Icon>
+  );
+}
+
+/** Faceted crystal shard (404, section markers). */
+export function CrystalIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 1.5 12.5 6 8 14.5 3.5 6 8 1.5Z" />
+      <path d="M3.5 6h9M8 1.5 6.25 6 8 14.5 9.75 6 8 1.5" />
+    </Icon>
+  );
+}
+
+/** Warning triangle (demo-data banner). Symmetric. */
+export function AlertIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 2.25 14.25 13.25H1.75L8 2.25Z" />
+      <path d="M8 6.5v3M8 11.4v.1" />
+    </Icon>
+  );
+}

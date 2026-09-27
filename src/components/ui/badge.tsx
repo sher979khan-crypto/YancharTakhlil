@@ -2,15 +2,19 @@ import type { HTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils/cn";
 
-export type BadgeTone = "neutral" | "up" | "down" | "brand" | "cosmos";
+import { glassSurfaceClassName } from "./glass";
 
-// Tinted fills are 12% of the tone; design-tokens.test.ts checks the text contrast on them.
+export type BadgeTone = "neutral" | "up" | "down" | "brand" | "cosmos" | "ice";
+
+// Tinted fills are translucent (TINT_ALPHA.badge = 12%), so they pick up the glass or surface
+// behind them; design-tokens.test.ts checks the text contrast on solid surfaces and on glass.
 const toneClasses: Record<BadgeTone, string> = {
-  neutral: "border-line bg-surface-2 text-fg-muted",
+  neutral: cn(glassSurfaceClassName, "text-fg-muted"),
   up: "border-up/30 bg-up/12 text-up",
   down: "border-down/30 bg-down/12 text-down",
   brand: "border-brand/30 bg-brand/12 text-brand",
   cosmos: "border-cosmos/30 bg-cosmos/12 text-cosmos",
+  ice: "border-ice/30 bg-ice/12 text-ice",
 };
 
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {

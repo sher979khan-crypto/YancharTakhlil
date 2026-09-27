@@ -27,10 +27,10 @@ export function NavLink({ href, children, className, onClick }: NavLinkProps) {
       className={cn(
         "inline-flex min-h-10 items-center rounded-md px-3 text-sm",
         "transition-colors duration-fast ease-snap",
-        // Active state is carried by weight and underline too, not only by color.
+        // Active: an inner glass chip plus weight and underline, never color alone.
         active
-          ? "font-semibold text-fg underline decoration-brand decoration-2 underline-offset-8"
-          : "font-medium text-fg-muted hover:bg-surface-2 hover:text-fg",
+          ? "border border-glass-border bg-glass-highlight font-semibold text-fg underline decoration-brand decoration-2 underline-offset-8 inset-shadow-highlight-soft"
+          : "border border-transparent font-medium text-fg-muted hover:bg-glass-highlight hover:text-fg",
         className,
       )}
     >

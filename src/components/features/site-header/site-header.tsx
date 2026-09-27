@@ -5,6 +5,7 @@ import { LocaleSwitcher } from "@/components/features/locale-switcher/locale-swi
 import { Link } from "@/lib/i18n/navigation";
 import { navItems } from "@/lib/navigation/nav-items";
 
+import { FloatingHeader } from "./floating-header";
 import { MobileMenu } from "./mobile-menu";
 import { NavLink } from "./nav-link";
 
@@ -12,9 +13,11 @@ export function SiteHeader() {
   const t = useTranslations("Nav");
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface-1/80 backdrop-blur-md">
-      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-8">
-        <Link href="/" className="-ms-1 inline-flex min-h-10 items-center rounded-md px-1">
+    <FloatingHeader>
+      {/* flex-wrap: the mobile menu panel (basis-full) wraps below the bar inside the same pill,
+          so an open menu adds no extra backdrop-filter layer. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 px-3 sm:px-5">
+        <Link href="/" className="inline-flex min-h-10 items-center rounded-md px-1 py-3">
           <Logo />
         </Link>
         <div className="hidden items-center gap-6 md:flex">
@@ -31,6 +34,6 @@ export function SiteHeader() {
         </div>
         <MobileMenu />
       </div>
-    </header>
+    </FloatingHeader>
   );
 }

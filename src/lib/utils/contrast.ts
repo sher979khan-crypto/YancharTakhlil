@@ -32,6 +32,18 @@ export function blend(top: Rgb, bottom: Rgb, alpha: number): Rgb {
   return [mix(top[0], bottom[0]), mix(top[1], bottom[1]), mix(top[2], bottom[2])];
 }
 
+export type Layer = Readonly<{ color: Rgb; alpha: number }>;
+
+/** Alpha-composites translucent layers, listed bottom to top, over an opaque base. */
+export function composite(base: Rgb, layers: readonly Layer[]): Rgb {
+  return layers.reduce((under, { color, alpha }) => blend(color, under, alpha), base);
+}
+
+/** The brighter of two colors by relative luminance (the harder background for light text). */
+export function brighter(a: Rgb, b: Rgb): Rgb {
+  return relativeLuminance(b) > relativeLuminance(a) ? b : a;
+}
+
 /** Ratios are truncated, not rounded, so 4.496 never displays as a passing 4.50. */
 export function formatRatio(ratio: number): string {
   return `${(Math.floor(ratio * 100) / 100).toFixed(2)}:1`;

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { GlassPanel } from "@/components/ui/glass-panel";
+import { CrystalIcon } from "@/components/ui/icons";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 const sections = [
@@ -28,20 +30,29 @@ export default function DisclaimerPage() {
   const t = useTranslations("Disclaimer");
 
   return (
-    <article className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:px-8">
-      <div className="flex flex-col gap-4">
-        <h1 className="font-display text-3xl font-semibold text-fg sm:text-4xl">{t("title")}</h1>
-        <p className="text-lg text-pretty text-fg">{t("intro")}</p>
-      </div>
-      {sections.map((key) => (
-        <section key={key} className="flex flex-col gap-2 border-t border-line pt-6">
-          <h2 className="font-display text-xl font-semibold text-fg">
-            {t(`sections.${key}.title`)}
-          </h2>
-          <p className="text-pretty text-fg-muted">{t(`sections.${key}.body`)}</p>
-        </section>
-      ))}
-      <p className="border-t border-line pt-6 text-sm text-fg-subtle">{t("lastUpdated")}</p>
-    </article>
+    <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-8">
+      <GlassPanel
+        as="article"
+        strength="strong"
+        className="flex max-w-prose flex-col gap-8 p-6 sm:p-10"
+      >
+        <div className="flex flex-col gap-4">
+          <h1 className="font-display text-3xl font-semibold text-fg sm:text-4xl">{t("title")}</h1>
+          <p className="text-lg text-pretty text-fg">{t("intro")}</p>
+        </div>
+        {sections.map((key) => (
+          <section key={key} className="flex flex-col gap-2 border-t border-glass-border pt-6">
+            <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-fg">
+              <CrystalIcon className="text-base text-ice" />
+              {t(`sections.${key}.title`)}
+            </h2>
+            <p className="text-pretty text-fg-muted">{t(`sections.${key}.body`)}</p>
+          </section>
+        ))}
+        <p className="border-t border-glass-border pt-6 text-sm text-fg-subtle">
+          {t("lastUpdated")}
+        </p>
+      </GlassPanel>
+    </div>
   );
 }

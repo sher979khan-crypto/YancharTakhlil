@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { blend, contrastRatio, formatRatio, parseHex, relativeLuminance } from "./contrast";
+import {
+  blend,
+  brighter,
+  composite,
+  contrastRatio,
+  formatRatio,
+  parseHex,
+  relativeLuminance,
+} from "./contrast";
 
 describe("parseHex", () => {
   it("parses #rrggbb in any case", () => {
@@ -35,6 +43,41 @@ describe("blend", () => {
     expect(blend([255, 255, 255], [0, 0, 0], 0.5)).toEqual([128, 128, 128]);
     expect(blend([10, 20, 30], [0, 0, 0], 1)).toEqual([10, 20, 30]);
     expect(blend([10, 20, 30], [40, 50, 60], 0)).toEqual([40, 50, 60]);
+  });
+});
+
+describe("composite", () => {
+  it("applies layers bottom to top", () => {
+    const white = [255, 255, 255] as const;
+    const black = [0, 0, 0] as const;
+    expect(composite(black, [])).toEqual(black);
+    // 50% white, then 50% black on top: the top layer wins half of the result.
+    expect(composite(black, [{ color: white, alpha: 0.5 }])).toEqual([128, 128, 128]);
+    expect(
+      composite(black, [
+        { color: white, alpha: 0.5 },
+        { color: black, alpha: 0.5 },
+      ]),
+    ).toEqual([64, 64, 64]);
+  });
+
+  it("equals nested blends", () => {
+    const base = parseHex("#07090d");
+    const a = parseHex("#7fe3ff");
+    const b = parseHex("#0c1017");
+    expect(
+      composite(base, [
+        { color: a, alpha: 0.06 },
+        { color: b, alpha: 0.55 },
+      ]),
+    ).toEqual(blend(b, blend(a, base, 0.06), 0.55));
+  });
+});
+
+describe("brighter", () => {
+  it("picks the color with the higher luminance", () => {
+    expect(brighter([10, 10, 10], [20, 20, 20])).toEqual([20, 20, 20]);
+    expect(brighter([200, 0, 0], [0, 120, 0])).toEqual([0, 120, 0]);
   });
 });
 

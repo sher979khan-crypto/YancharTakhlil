@@ -156,18 +156,40 @@ Tests are colocated as *.test.ts(x).
 - Uzbek Latin orthography: use oʻ / gʻ with U+02BB and U+02BC for the tutuq belgisi; never a plain ASCII apostrophe.
 
 ## 10. Design
-- Concept: "Ticker Noir" (dark, precise trading-terminal mood with living numbers) plus a
-  "Constellation" star-map hero on the home page.
+- Concept: "Glass & Crystal" (evolved from "Ticker Noir"): dark trading-terminal mood with living
+  numbers, glassmorphism for floating UI, and a crystal-constellation hero (static SVG poster now,
+  live 3D in Step 21 with the poster as fallback).
 - Design tokens are defined in Tailwind's @theme in src/app/globals.css (Step 3). Components use tokens only.
   No raw hex values outside globals.css (exceptions: siteConfig.themeColor and src/app/icon.svg, both
   checked against the tokens by src/config/design-tokens.test.ts). Tailwind's default palette is removed.
   - Colors: bg, surface-1, surface-2, surface-3, line, fg, fg-muted, fg-subtle, brand, brand-fg, up, down,
-    cosmos. Text tokens (fg, fg-muted, fg-subtle, up, down, brand, cosmos) reach 4.5:1 on bg, surface-1 and
-    surface-2; brand-fg on brand too. The contrast test fails CI otherwise. line is decorative only (1.3-1.5:1):
-    a form-control edge must use fg-subtle.
-  - Shadows: shadow-glow-{brand,up,down,cosmos}. Radius: rounded-sm 4px, rounded-md 8px, rounded-lg 12px.
+    cosmos, ice. Text tokens (fg, fg-muted, fg-subtle, up, down, brand, cosmos, ice) reach 4.5:1 on bg,
+    surface-1 and surface-2 AND on the blended backgrounds (see Glass); brand-fg on brand too. The contrast
+    test fails CI otherwise. line is decorative only (1.3-1.5:1): a form-control edge must use fg-subtle.
+  - Glass tokens (color-mix in globals.css, parsed by the test): glass-fill (surface-1 55%), glass-fill-strong
+    (surface-1 75%), glass-border (white 12%), glass-border-strong (white 20%), glass-highlight (white 6%,
+    top stop of the inner sheen). Blur: backdrop-blur-glass-sm 8px (< 640px), backdrop-blur-glass 16px.
+  - Page background: faint grid on body, plus a fixed body::before layer with an ice glow (6%) at top-start,
+    an amber glow (4%) at bottom-end (swapped in RTL via --page-glow-start/end) and a vignette. CSS only.
+  - Blended contrast: text on glass is checked against fill + sheen peak over the brightest backdrop (glow
+    peak + grid line blurred at 8px); text on the page against the glow peak + a sharp grid line; tinted
+    Badges (12%) and DemoBanner (10% amber) over those too (src/config/design-tokens.ts).
+  - Shadows: shadow-glow-{brand,up,down,cosmos,ice}, shadow-glass (floating panels), shadow-glass-lifted
+    (scrolled header); inset-shadow-highlight(-soft) (lit top edge); text-shadow-glow-ice (display text,
+    text stays solid); drop-shadow-glow-ice. Radius: rounded-sm 4px, md 8px, lg 12px, xl 20px, 2xl 28px.
   - Motion: duration-fast 120ms, duration-base 200ms, duration-slow 400ms, ease-snap
-    cubic-bezier(0.2, 0.8, 0.2, 1). Animations: animate-shimmer, animate-flash-{up,down}, animate-roll-{up,down}.
+    cubic-bezier(0.2, 0.8, 0.2, 1). Animations: animate-shimmer, animate-flash-{up,down}, animate-roll-{up,down},
+    animate-float (hero poster, motion-safe only).
+- Glass vs solid: data tables and lists stay on SOLID surfaces (Card variant="solid"). Glass only for
+  navigation, hero, panels, chat and overlays.
+  - Blurred glass (backdrop-filter): GlassPanel, Card variant="glass", the header pill. Max 3 visible in any
+    viewport; the mobile menu expands inside the header pill so it adds no layer. The dev-only styleguide
+    is exempt.
+  - Glass surfaces (no blur, glassSurfaceClassName in src/components/ui/glass.ts): secondary Button,
+    SegmentedControl, SearchInput, StatTile, neutral Badge, the locale select.
+  - Fallback: the custom variant glass-fallback (globals.css; Tailwind 4.3 has none built in) matches
+    @supports not (backdrop-filter) OR prefers-reduced-transparency: reduce. Glass then becomes solid
+    surface-1 (default) / surface-2 (strong) with the same border, no sheen, no blur.
   - Dark only (color-scheme: dark). Focus ring: 2px brand outline + 2px offset, set globally on :focus-visible.
 - Fonts (src/lib/fonts.ts, next/font/google, self-hosted): font-display = Unbounded (headings/hero),
   font-sans = Noto Sans (body/UI), font-mono = JetBrains Mono (numbers, always with tabular-nums).
@@ -175,7 +197,12 @@ Tests are colocated as *.test.ts(x).
   Sans Arabic (Arabic glyphs fall through to Plex, Latin words match the rest of the site); numbers stay mono.
 - font-brand = Unbounded, used only for the brand wordmark; identical in all locales.
 - font-mono is only for numbers and tickers, never for words (JetBrains Mono lacks U+02BB).
-- UI primitives live in src/components/ui: Button, Card, Badge, Skeleton, PriceChange, TickerNumber, icons.
+- UI primitives live in src/components/ui: Button, Card (solid | glass), Badge (+ ice), Skeleton, PriceChange,
+  TickerNumber, GlassPanel, SegmentedControl (client, radiogroup + roving tabindex, arrows follow reading
+  direction), SearchInput (server-safe; clear button only with onClear from a client parent), StatTile,
+  CoinLogo (next/image; monogram fallback), DemoBanner (required with fixture data), icons.
+- Remote images: next.config images.remotePatterns comes only from src/config/images.ts
+  (https://coin-images.coingecko.com/coins/images/**). Never add wildcard hosts.
 - Use TickerNumber (live, animated) or PriceChange (percentage move) for all live numbers.
 - Vertical arrows (price up/down) never mirror; chevrons do (ChevronIcon direction="start" | "end").
 - Price direction is never shown by color alone: always use sign + arrow + color.
@@ -268,3 +295,14 @@ Tests are colocated as *.test.ts(x).
 - 2026-09-27: Public read API /api/v1 (GET only; other methods get Next's automatic 405). One success and
   one error shape (src/lib/api/contract.ts), CDN cache headers from cache-headers.ts. Only ApiInputError
   (params.ts) maps to 400; a stray ZodError is a server bug and maps to 500 INTERNAL.
+- 2026-09-27: Step 3.2 "Glass & Crystal" design refresh. New ice token #7FE3FF (text token too). Glass fills
+  are surface-1 at 55% / 75%, borders white 12% / 20%, blur 8px under 640px and 16px above. The spec's 8% sheen
+  was lowered to 6%, and fg-subtle lightened from #778190 to #7E8898 (same hue, toward fg-muted), because
+  fg-subtle failed 4.5:1 on glass over the ice glow (3.88:1 at 8%). Brand, up and down are unchanged.
+- 2026-09-27: Blur-layer budget: at most 3 backdrop-filter layers visible at once. Small repeated controls
+  use glass surfaces without blur. The mobile menu is part of the header pill (not a separate blurred
+  panel). Fallback variant glass-fallback covers no-backdrop-filter support and reduced transparency.
+- 2026-09-27: Header scroll state uses an IntersectionObserver sentinel (FloatingHeader), no scroll
+  listeners. Coin logos are optimized by next/image from coin-images.coingecko.com only (host taken from
+  CoinGecko's documented /coins/markets sample); `search` is left open because every URL carries a
+  timestamp query.

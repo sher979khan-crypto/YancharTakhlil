@@ -6,9 +6,21 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
-      shadow: ["glow-brand", "glow-up", "glow-down", "glow-cosmos"],
+      shadow: [
+        "glow-brand",
+        "glow-up",
+        "glow-down",
+        "glow-cosmos",
+        "glow-ice",
+        "glass",
+        "glass-lifted",
+      ],
+      "inset-shadow": ["highlight", "highlight-soft"],
+      "text-shadow": ["glow-ice"],
+      "drop-shadow": ["glow-ice"],
+      blur: ["glass", "glass-sm"],
       ease: ["snap"],
-      animate: ["shimmer", "flash-up", "flash-down", "roll-up", "roll-down"],
+      animate: ["shimmer", "flash-up", "flash-down", "roll-up", "roll-down", "float"],
     },
     classGroups: {
       duration: [{ duration: ["fast", "base", "slow"] }],

@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 
+import { GlassPanel } from "@/components/ui/glass-panel";
 import { Link } from "@/lib/i18n/navigation";
 
 const COINGECKO_URL = "https://www.coingecko.com";
@@ -13,8 +14,9 @@ export function SiteFooter() {
   const year = String(new Date().getFullYear());
 
   return (
-    <footer className="border-t border-line bg-surface-1">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-fg-muted sm:px-8 md:flex-row md:items-start md:justify-between md:gap-8">
+    // Glass card inset 16px from the viewport edges, like the header pill.
+    <footer className="mt-8 px-4 pb-4">
+      <GlassPanel className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-7 text-sm text-fg-muted sm:px-8 md:flex-row md:items-start md:justify-between md:gap-8">
         {/* Attribution wording and link follow CoinGecko's attribution guide. */}
         <p>
           {t.rich("attribution", {
@@ -38,7 +40,7 @@ export function SiteFooter() {
           </Link>
         </p>
         <p>{t("copyright", { year })}</p>
-      </div>
+      </GlassPanel>
     </footer>
   );
 }

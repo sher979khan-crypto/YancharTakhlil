@@ -32,7 +32,8 @@ export default function MarketsPage() {
           {t("comingSoon")}
         </Badge>
       </div>
-      {/* Placeholder for the coin list; the badge above tells users why it is empty. */}
+      {/* Placeholder for the coin list; the badge above tells users why it is empty. Data tables
+          stay on a solid Card (readability, no blur behind a long list). */}
       <Card aria-busy="true" className="flex flex-col divide-y divide-line p-0">
         {Array.from({ length: PLACEHOLDER_ROWS }, (_, index) => (
           <div key={index} className="flex items-center gap-4 px-4 py-3">

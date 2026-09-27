@@ -3,8 +3,10 @@
 import { hasLocale, useLocale, useTranslations } from "next-intl";
 import { useId, useTransition, type ChangeEvent } from "react";
 
+import { glassSurfaceClassName } from "@/components/ui/glass";
 import { routing } from "@/lib/i18n/routing";
 import { usePathname, useRouter } from "@/lib/i18n/navigation";
+import { cn } from "@/lib/utils/cn";
 
 export function LocaleSwitcher() {
   const t = useTranslations("LocaleSwitcher");
@@ -28,10 +30,14 @@ export function LocaleSwitcher() {
       <label htmlFor={id} className="text-fg-muted">
         {t("label")}
       </label>
-      {/* fg-subtle border: a form control's edge needs 3:1, which the line token does not reach. */}
+      {/* fg-subtle border: a form control's edge needs 3:1, which the glass border does not reach.
+          Options get a solid fill: some platforms paint the popup with the select's background. */}
       <select
         id={id}
-        className="h-10 rounded-md border border-fg-subtle bg-surface-2 px-3 text-fg disabled:opacity-50"
+        className={cn(
+          glassSurfaceClassName,
+          "h-10 rounded-lg border-fg-subtle px-3 text-fg disabled:opacity-50 [&>option]:bg-surface-2",
+        )}
         value={locale}
         onChange={handleChange}
         disabled={isPending}
