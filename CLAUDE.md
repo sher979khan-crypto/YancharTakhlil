@@ -45,10 +45,13 @@ src/
                               home page too). No route-level loading.tsx (see §6).
     robots.ts, sitemap.ts, global-error.tsx
   components/ui/              Design-system primitives (Button, Card, Badge, ...)
-  components/features/<name>/ Feature components (markets, coin-detail, analyst, assistant, hero,
+  components/features/<name>/ Feature components (markets, home, coin-detail, analyst, assistant, hero,
                               site-header, site-footer, skip-link, brand, locale-switcher)
   components/features/markets/ MarketsExplorer (client: search, tabs, sort, polling), CoinsTable (md+),
                               CoinCards (< md), UpdatedAgo (client-only relative time), useCoinsPolling
+  components/features/home/   HomeLive (client: ONE useCoinsPolling feeds TickerTape + TopMovers; the
+                              server-rendered MarketPulse is passed in as children), TickerTape (CSS
+                              marquee), MarketPulse (server, 4 StatTiles), TopMovers, MarketDataUnavailable
   lib/domain/                 zod schemas, inferred types and pure business logic (market, errors,
                               coin-filter, stablecoin-watch, market-list). No I/O.
   lib/api/                    /api/v1 contract (contract.ts: zod schemas, no server-only, shared with the
@@ -64,7 +67,7 @@ src/
   lib/i18n/                   i18n helpers
   lib/navigation/             Nav items and the active-route matcher
   lib/seo/                    Canonical/hreflang builder and per-page metadata helper
-  lib/utils/                  Small pure helpers
+  lib/utils/                  Small pure helpers (incl. loadOrNull: one failing data call degrades one section)
   config/                     Non-secret config: site.ts, ai.ts, cache.ts, chat.ts
   data/                       Static JSON: excluded-coins.json, fixtures/market-snapshot.json,
                               knowledge/{en,ar,uz}.json
@@ -163,6 +166,9 @@ Tests are colocated as *.test.ts(x).
 - Number formatting is runtime-independent: Intl is only called with en-US; separators and compact suffixes
   come from src/lib/i18n/number-format-spec.ts. Never pass ar/uz locales to Intl in code that runs on the
   client (hydration mismatch). Dates will follow the same rule when added.
+- No plural rules on the client: Intl.PluralRules has the same runtime gaps for ar/uz, so ICU plural
+  messages are not used. Counts go in label form ("Results: {count}", "Natijalar: {count}"), with the
+  number passed as a string.
 - Uzbek Latin orthography: use oʻ / gʻ with U+02BB and U+02BC for the tutuq belgisi; never a plain ASCII apostrophe.
 
 ## 10. Design
@@ -189,7 +195,8 @@ Tests are colocated as *.test.ts(x).
     text stays solid); drop-shadow-glow-ice. Radius: rounded-sm 4px, md 8px, lg 12px, xl 20px, 2xl 28px.
   - Motion: duration-fast 120ms, duration-base 200ms, duration-slow 400ms, ease-snap
     cubic-bezier(0.2, 0.8, 0.2, 1). Animations: animate-shimmer, animate-flash-{up,down}, animate-roll-{up,down},
-    animate-float (hero poster, motion-safe only).
+    animate-float (hero poster, motion-safe only), animate-marquee (ticker tape, 40s, motion-safe only;
+    direction from --marquee-shift: -50% LTR, +50% RTL).
 - Glass vs solid: data tables and lists stay on SOLID surfaces (Card variant="solid"). Glass only for
   navigation, hero, panels, chat and overlays.
   - Blurred glass (backdrop-filter): GlassPanel, Card variant="glass", the header pill. Max 3 visible in any
@@ -206,7 +213,9 @@ Tests are colocated as *.test.ts(x).
   Arabic ([lang="ar"]): font-display = IBM Plex Sans Arabic; font-sans = Noto Sans first, then IBM Plex
   Sans Arabic (Arabic glyphs fall through to Plex, Latin words match the rest of the site); numbers stay mono.
 - font-brand = Unbounded, used only for the brand wordmark; identical in all locales.
-- font-mono is only for numbers and tickers, never for words (JetBrains Mono lacks U+02BB).
+- font-mono is only for numbers and tickers, never for words (JetBrains Mono lacks U+02BB). The mono stack
+  is JetBrains Mono, then IBM Plex Sans Arabic (arabic subset only), so Arabic compact suffixes (مليار) fall
+  through to Plex while digits and "$" stay in JetBrains Mono.
 - UI primitives live in src/components/ui: Button, Card (solid | glass), Badge (+ ice), Skeleton, PriceChange,
   TickerNumber, GlassPanel, SegmentedControl (client, radiogroup + roving tabindex, arrows follow reading
   direction), SearchInput (server-safe; clear button only with onClear from a client parent), StatTile,
@@ -328,3 +337,18 @@ Tests are colocated as *.test.ts(x).
   is link cards with a sort select. Only the coin name is a link in the table (not the row).
 - 2026-09-27: Status that follows polling (Demo/Live badge, DemoBanner, "updated ago", stale notice,
   poll error with Retry) lives in MarketsExplorer, not in the page, so it reflects the latest data.
+- 2026-09-27: Step 9b. Home page is ISR (revalidate 120) and loads getTopCoins and getGlobalMarket in
+  parallel, each through loadOrNull: a failing call (including provider selection, e.g. CONFIG) turns only
+  its sections into a "Market data is temporarily unavailable" card; the hero always renders. Order: hero ->
+  DemoBanner (either source is fixture) -> ticker tape -> market pulse -> top movers.
+- 2026-09-27: One poll per page: HomeLive runs a single useCoinsPolling for the ticker (top 20 by rank,
+  buildTickerItems) and the movers (5 gainers / 5 losers, buildTopMovers = filterByTab rules). The market
+  pulse is static until the next ISR (no /api/v1/global polling). Relative time reuses UpdatedAgo.
+- 2026-09-27: Ticker tape: CSS-only marquee (list rendered twice, the copy aria-hidden), pauses on hover and
+  focus-within (the strip is focusable), moves toward the start side in both directions. Items are not
+  links. Under reduced motion it is a static, scroll-snapping strip with one copy. It is a glass surface
+  (no blur) and `relative`, so the sr-only spans inside it cannot widen the page.
+- 2026-09-27: Top movers cards are glass surfaces (glassSurfaceClassName + shadow-glass), not blurred
+  Cards: with the header pill and the hero's GlassPanel, two blurred cards made 4 visible blur layers at
+  1440px. Measured max after the change: 2. Rows use a stretched link (the coin name) for a 40px+ target.
+- 2026-09-27: formatPercentUnsigned (1 fraction digit, never signed) for shares such as BTC/ETH dominance.

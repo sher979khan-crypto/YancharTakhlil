@@ -149,3 +149,29 @@ export function sortCoins<T extends ListCoin>(
     return sign * compareValues(left, right);
   });
 }
+
+/** Coins on the home page ticker tape. */
+export const TICKER_SIZE = 20;
+/** Coins in each home page movers card. */
+export const MOVERS_SIZE = 5;
+
+/** The ticker tape: the first `size` coins by rank, whatever order the list arrives in. */
+export function buildTickerItems<T extends Pick<Coin, "rank">>(
+  coins: readonly T[],
+  size: number = TICKER_SIZE,
+): T[] {
+  return [...coins].sort((a, b) => a.rank - b.rank).slice(0, size);
+}
+
+export type TopMovers<T> = Readonly<{ gainers: T[]; losers: T[] }>;
+
+/** Top gainers and losers by 24h change, with the bot's rules (see filterByTab). */
+export function buildTopMovers<T extends Pick<Coin, "change24hPct">>(
+  coins: readonly T[],
+  size: number = MOVERS_SIZE,
+): TopMovers<T> {
+  return {
+    gainers: filterByTab(coins, "gainers").slice(0, size),
+    losers: filterByTab(coins, "losers").slice(0, size),
+  };
+}

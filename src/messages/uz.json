@@ -7,7 +7,25 @@
     "title": "Yanchar Takhlilga xush kelibsiz",
     "subtitle": "Bozor kapitallashuvi boʻyicha eng yirik 99 ta kriptovalyutani joriy narxlar va sunʼiy intellekt yordamidagi tahlil bilan kuzatib boring.",
     "metaTitle": "Eng yirik 99 ta kriptovalyuta narxlari",
-    "exploreMarkets": "Bozorlarni koʻrish"
+    "exploreMarkets": "Bozorlarni koʻrish",
+    "ticker": {
+      "label": "Eng yirik 20 ta tanganing joriy narxlari"
+    },
+    "pulse": {
+      "title": "Bozor pulsi",
+      "marketCap": "Umumiy bozor kapitallashuvi",
+      "volume": "24 soatlik savdo hajmi",
+      "btcDominance": "BTC ulushi",
+      "ethDominance": "ETH ulushi"
+    },
+    "movers": {
+      "title": "Eng koʻp oʻzgarganlar",
+      "gainers": "Eng koʻp oʻsganlar (24 soat)",
+      "losers": "Eng koʻp tushganlar (24 soat)",
+      "viewAll": "Barcha bozorlarni koʻrish",
+      "empty": "Hozircha bu roʻyxatda tanga yoʻq."
+    },
+    "dataUnavailable": "Bozor maʼlumotlari vaqtincha mavjud emas. Keyinroq qayta urinib koʻring."
   },
   "LocaleSwitcher": {
     "label": "Til",
@@ -71,7 +89,7 @@
       "asc": "{column}, oʻsish tartibida",
       "desc": "{column}, kamayish tartibida"
     },
-    "results": "{count} ta tanga",
+    "results": "Natijalar: {count}",
     "empty": {
       "search": "«{query}» boʻyicha tanga topilmadi.",
       "clear": "Qidiruvni tozalash",

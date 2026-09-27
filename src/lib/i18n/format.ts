@@ -12,6 +12,9 @@ export const NOT_A_NUMBER = "—";
 
 export const PERCENT_FRACTION_DIGITS = 2;
 
+/** Shares (e.g. BTC dominance) need less precision than price moves. */
+export const SHARE_FRACTION_DIGITS = 1;
+
 // en-US compact suffixes, i.e. the magnitude of the number.
 const EN_COMPACT_UNITS: Readonly<Record<string, CompactUnit>> = {
   K: "thousand",
@@ -79,6 +82,19 @@ export function formatPercent(value: number, locale: Locale): string {
     signDisplay: "exceptZero",
     minimumFractionDigits: PERCENT_FRACTION_DIGITS,
     maximumFractionDigits: PERCENT_FRACTION_DIGITS,
+  });
+}
+
+/**
+ * A share such as market dominance: `value` is a percentage (54.2 means 54.2%), shown with one
+ * fraction digit and never a sign, because it is not a move.
+ */
+export function formatPercentUnsigned(value: number, locale: Locale): string {
+  return format(value / 100, locale, {
+    style: "percent",
+    signDisplay: "never",
+    minimumFractionDigits: SHARE_FRACTION_DIGITS,
+    maximumFractionDigits: SHARE_FRACTION_DIGITS,
   });
 }
 

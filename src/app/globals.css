@@ -49,7 +49,13 @@
     var(--font-noto-sans-face), var(--font-plex-arabic-face), ui-sans-serif, system-ui, sans-serif;
   /* Brand wordmark only. Latin, and deliberately not remapped under [lang="ar"]. */
   --font-brand: var(--font-unbounded-face), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono-face), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  /*
+   * JetBrains Mono has no Arabic glyphs, so Arabic compact suffixes ("مليار") fall through to
+   * Plex Arabic. Its face only covers the Arabic subset, so digits and "$" stay in JetBrains Mono.
+   */
+  --font-mono:
+    var(--font-jetbrains-mono-face), var(--font-plex-arabic-face), ui-monospace, "SFMono-Regular",
+    Menlo, monospace;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
@@ -94,6 +100,7 @@
   --animate-roll-up: roll-up 400ms var(--ease-snap);
   --animate-roll-down: roll-down 400ms var(--ease-snap);
   --animate-float: float 9s ease-in-out infinite;
+  --animate-marquee: marquee 40s linear infinite;
 
   @keyframes shimmer {
     from {
@@ -142,6 +149,17 @@
       transform: translateY(-6px);
     }
   }
+
+  /*
+   * The track holds the list twice, so shifting it by half its width lands on an identical frame.
+   * The shift is -50% in LTR and +50% in RTL (--marquee-shift, set below), so the tape always
+   * moves toward the start side, in the reading direction.
+   */
+  @keyframes marquee {
+    to {
+      transform: translateX(var(--marquee-shift));
+    }
+  }
 }
 
 /*
@@ -167,11 +185,13 @@
     /* Logical glow positions: ice at top-start, amber at bottom-end; swapped for RTL below. */
     --page-glow-start: 0%;
     --page-glow-end: 100%;
+    --marquee-shift: -50%;
   }
 
   [dir="rtl"] {
     --page-glow-start: 100%;
     --page-glow-end: 0%;
+    --marquee-shift: 50%;
   }
 
   /*

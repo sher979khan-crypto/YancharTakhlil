@@ -20,7 +20,7 @@ const twMerge = extendTailwindMerge({
       "drop-shadow": ["glow-ice"],
       blur: ["glass", "glass-sm"],
       ease: ["snap"],
-      animate: ["shimmer", "flash-up", "flash-down", "roll-up", "roll-down", "float"],
+      animate: ["shimmer", "flash-up", "flash-down", "roll-up", "roll-down", "float", "marquee"],
     },
     classGroups: {
       duration: [{ duration: ["fast", "base", "slow"] }],

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildTickerItems,
+  buildTopMovers,
   defaultDirectionFor,
   defaultSortForTab,
   downsample,
@@ -168,5 +170,49 @@ describe("sort defaults", () => {
     expect(defaultDirectionFor("rank")).toBe("asc");
     expect(defaultDirectionFor("name")).toBe("asc");
     expect(defaultDirectionFor("marketCap")).toBe("desc");
+  });
+});
+
+describe("buildTickerItems", () => {
+  it("keeps the first 20 coins by rank, in rank order", () => {
+    const coins = Array.from({ length: 30 }, (_, i) => coin(`c${30 - i}`, { rank: 30 - i }));
+    const items = buildTickerItems(coins);
+    expect(items).toHaveLength(20);
+    expect(items.map((c) => c.rank)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+  });
+
+  it("returns every coin when there are fewer than 20, and does not mutate its input", () => {
+    const coins = [coin("b", { rank: 2 }), coin("a", { rank: 1 })];
+    expect(buildTickerItems(coins).map((c) => c.id)).toEqual(["a", "b"]);
+    expect(coins.map((c) => c.id)).toEqual(["b", "a"]);
+    expect(buildTickerItems([])).toEqual([]);
+  });
+});
+
+describe("buildTopMovers", () => {
+  it("takes the 5 biggest risers and the 5 biggest fallers", () => {
+    const changes = [1, -1, 7, -7, 3, -3, 9, -9, 5, -5, 2, -2, 0];
+    const coins = changes.map((change, i) => coin(`c${i}`, { change24hPct: change }));
+    const { gainers, losers } = buildTopMovers(coins);
+    expect(gainers.map((c) => c.change24hPct)).toEqual([9, 7, 5, 3, 2]);
+    expect(losers.map((c) => c.change24hPct)).toEqual([-9, -7, -5, -3, -2]);
+  });
+
+  it("excludes coins without a 24h change and flat coins", () => {
+    const coins = [
+      coin("up", { change24hPct: 4 }),
+      coin("none", { change24hPct: null }),
+      coin("flat", { change24hPct: 0 }),
+      coin("down", { change24hPct: -4 }),
+    ];
+    const { gainers, losers } = buildTopMovers(coins);
+    expect(gainers.map((c) => c.id)).toEqual(["up"]);
+    expect(losers.map((c) => c.id)).toEqual(["down"]);
+  });
+
+  it("returns empty lists when nothing moved", () => {
+    const { gainers, losers } = buildTopMovers([coin("flat", { change24hPct: 0 })]);
+    expect(gainers).toEqual([]);
+    expect(losers).toEqual([]);
   });
 });

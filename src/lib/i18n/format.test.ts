@@ -1,13 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { locales, type Locale } from "./config";
-import { formatCompactCurrency, formatPercent, formatPrice, NOT_A_NUMBER } from "./format";
+import {
+  formatCompactCurrency,
+  formatPercent,
+  formatPercentUnsigned,
+  formatPrice,
+  NOT_A_NUMBER,
+} from "./format";
 
 const ARABIC_INDIC_DIGITS = /[٠-٩۰-۹]/;
 const BIDI_CONTROLS = /[‎‏؜‪-‮⁦-⁩]/;
 const NBSP = " ";
 
-const formatters = [formatPrice, formatPercent, formatCompactCurrency];
+const formatters = [formatPrice, formatPercent, formatPercentUnsigned, formatCompactCurrency];
 
 describe("formatPrice", () => {
   it("uses 2 fraction digits for prices >= 1", () => {
@@ -57,6 +63,22 @@ describe("formatPercent", () => {
     expect(formatPercent(0, "en")).toBe("0.00%");
     expect(formatPercent(12345.678, "en")).toBe("+12,345.68%");
     expect(formatPercent(12345.678, "uz")).toBe(`+12${NBSP}345,68%`);
+  });
+});
+
+describe("formatPercentUnsigned", () => {
+  it("shows one fraction digit and no sign", () => {
+    expect(formatPercentUnsigned(54.23, "en")).toBe("54.2%");
+    expect(formatPercentUnsigned(54.25, "en")).toBe("54.3%");
+    expect(formatPercentUnsigned(12.1, "ar")).toBe("12.1%");
+    expect(formatPercentUnsigned(12.1, "uz")).toBe("12,1%");
+  });
+
+  it("pads to one digit, never signs, and handles the bounds", () => {
+    expect(formatPercentUnsigned(0, "en")).toBe("0.0%");
+    expect(formatPercentUnsigned(100, "en")).toBe("100.0%");
+    expect(formatPercentUnsigned(7, "uz")).toBe("7,0%");
+    expect(formatPercentUnsigned(-3.21, "en")).toBe("3.2%");
   });
 });
 

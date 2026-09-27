@@ -7,7 +7,25 @@
     "title": "Welcome to Yanchar Takhlil",
     "subtitle": "Track the top 99 cryptocurrencies by market cap, with live prices and AI-assisted analysis.",
     "metaTitle": "Top 99 crypto prices",
-    "exploreMarkets": "Explore markets"
+    "exploreMarkets": "Explore markets",
+    "ticker": {
+      "label": "Live prices of the top 20 coins"
+    },
+    "pulse": {
+      "title": "Market pulse",
+      "marketCap": "Total market cap",
+      "volume": "24h volume",
+      "btcDominance": "BTC dominance",
+      "ethDominance": "ETH dominance"
+    },
+    "movers": {
+      "title": "Top movers",
+      "gainers": "Top gainers (24h)",
+      "losers": "Top losers (24h)",
+      "viewAll": "View all markets",
+      "empty": "No coins in this list right now."
+    },
+    "dataUnavailable": "Market data is temporarily unavailable. Please try again later."
   },
   "LocaleSwitcher": {
     "label": "Language",
@@ -71,7 +89,7 @@
       "asc": "{column}, ascending",
       "desc": "{column}, descending"
     },
-    "results": "{count} coins",
+    "results": "Results: {count}",
     "empty": {
       "search": "No coins match “{query}”.",
       "clear": "Clear search",
