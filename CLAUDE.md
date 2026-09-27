@@ -76,7 +76,11 @@ src/
   lib/ai/core/                Shared OpenRouter client, guards (rate limit, budget, input limits)
   lib/ai/agents/assistant/    "Kotib" agent: prompt, config, tools
   lib/ai/agents/analyst/      "Tahlilchi" agent: prompt, config, output schema
-  lib/ai/indicators/          Technical indicators (pure functions, unit-tested)
+  lib/ai/analyst/             Analyst input (Step 11): analysis-input.ts (AnalysisInputSchema +
+                              buildAnalysisInput, pure), collect-numbers.ts (every citable number, for
+                              output verification), load-analysis-input.ts (server-only, the only I/O)
+  lib/ai/indicators/          Technical indicators (pure functions, unit-tested): rsi, moving-average,
+                              volatility, levels, volume, rounding, series (input guards, percentFrom)
   lib/i18n/                   i18n helpers
   lib/navigation/             Nav items and the active-route matcher
   lib/seo/                    Canonical/hreflang builder and per-page metadata helper
@@ -158,6 +162,24 @@ Tests are colocated as *.test.ts(x).
   confidence, reasons[] (each with metric + value + explanation), risks[], invalidation.
   All indicators are computed in code (lib/ai/indicators), never by the LLM. Every number in the output
   must be verified against the input data. Env key: OPENROUTER_API_KEY_ANALYST.
+- The LLM only sees AnalysisInput (src/lib/ai/analyst/analysis-input.ts, version 1): coin identity,
+  price/changes/24h range position, market (cap, volume, volume/cap, FDV, circulating/max), history
+  (ATH/ATL and distance from them, daily point count), indicators, global context (BTC dominance, market
+  cap change 24h; null when /global fails) and dataQuality { limitedHistory, missing[] }. Never raw series
+  or free text. Built by loadAnalysisInput(id): getCoinDetail + getDailyPrices(id, 90) + getGlobalMarket
+  (<= 3 CoinGecko calls). ~0.9-1 KB of JSON; the test cap is 2 KB. Unknown values are null, never NaN.
+- Indicators (daily closes, oldest first, last 90 used): Wilder RSI 14 (first averages = simple mean,
+  then Wilder smoothing; 100 with no losses, 50 when flat; checked against the StockCharts example);
+  SMA 20/50; price vs SMA %; trend = sma20 vs sma50 with a 0.5% dead band (gap rounded to 2 decimals
+  first); 30-day volatility = sample std dev (n - 1) of daily simple returns, %; 30/90-day lowest/highest
+  close (support/resistance proxies) and % distance; volume trend = avg of last 7 daily volumes vs. the
+  23 before, %. Each returns null with too little data (RSI < 15 closes, SMA < period, volatility < 31,
+  levels < window, volume trend < 30 or a gap). limitedHistory = fewer than 90 daily points.
+- Rounding policy (lib/ai/indicators/rounding.ts, the only one): percentages (incl. RSI) 2 decimals;
+  USD prices (price, SMA, levels, ATH/ATL) 6 significant digits; large USD values (market cap, volume,
+  FDV) 3 significant digits; ratios 4 decimals. Non-finite -> null, never -0.
+- collectNumbers(input) lists every finite number in AnalysisInput plus |x| of each negative one; any
+  number in the LLM output that is not in this list is treated as invented (Step 12).
 - Model IDs are configured per agent in src/config/ai.ts (env override allowed). Never hard-code model
   IDs anywhere else.
 - The "Not financial advice" disclaimer is rendered by the UI on every AI answer. Never rely on the LLM
@@ -404,3 +426,9 @@ Tests are colocated as *.test.ts(x).
 - 2026-09-27: CoinGecko getDailyPrices(7) slices the cached 30-day series (one market_chart call per coin
   per 30 min for 7D + 30D). The provider contract now requires 7 days = tail of 30 days.
 - 2026-09-27: Agent display names per locale (see §7); the coin page AI placeholder uses them.
+- 2026-09-27: Step 11. Indicators and the Analyst input are pure code (no LLM, no Date.now: `now` is a
+  parameter), validated (finite numbers, strictly ascending dates) and rounded by one policy. RSI is
+  Wilder's, verified against the StockCharts ChartSchool worked example (4-decimal closes from its
+  spreadsheet). Distances from ATH/ATL are computed from the current price, not taken from upstream's
+  athChangePct. loadAnalysisInput returns a MarketResult (source/stale), so fixture analyses can be
+  labeled as demo data.
