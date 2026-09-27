@@ -25,7 +25,103 @@
       "viewAll": "View all markets",
       "empty": "No coins in this list right now."
     },
-    "dataUnavailable": "Market data is temporarily unavailable. Please try again later."
+    "dataUnavailable": "Market data is temporarily unavailable. Please try again later.",
+    "features": {
+      "title": "What you can do",
+      "comingSoon": "Coming soon",
+      "items": {
+        "markets": {
+          "title": "Live markets",
+          "body": "The top 99 cryptocurrencies with prices refreshed every minute, search, sorting and 7-day charts.",
+          "link": "Open markets"
+        },
+        "coin": {
+          "title": "Coin deep-dive",
+          "body": "A detailed page for every coin: interactive chart, market stats, all-time high and low.",
+          "link": "Explore a coin"
+        },
+        "analyst": {
+          "title": "AI Analyst",
+          "body": "A BUY / HOLD / SELL view for the selected coin, backed by exact numbers, with reasons and risks."
+        },
+        "assistant": {
+          "title": "AI Assistant",
+          "body": "Ask about crypto, trading basics or this app, in English, Arabic or Uzbek."
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "steps": {
+        "pick": {
+          "title": "Pick a coin",
+          "body": "Choose any coin from the top 99."
+        },
+        "compute": {
+          "title": "The code calculates",
+          "body": "Indicators such as RSI, moving averages and volatility are computed from real market data by our code, not by the AI."
+        },
+        "explain": {
+          "title": "The AI explains",
+          "body": "Every reason cites a real number, together with the risks and the level at which the view no longer holds."
+        }
+      }
+    },
+    "why": {
+      "title": "Why Yanchar Takhlil",
+      "items": {
+        "data": {
+          "title": "Reliable data",
+          "body": "Market data from CoinGecko, refreshed about every minute."
+        },
+        "numbers": {
+          "title": "Numbers first",
+          "body": "The AI never invents numbers: every figure it uses is checked against the data."
+        },
+        "languages": {
+          "title": "Three languages",
+          "body": "English, Arabic with full right-to-left layout, and Uzbek."
+        },
+        "transparent": {
+          "title": "Transparent",
+          "body": "A clear not-financial-advice notice, and demo data is always labeled."
+        }
+      }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": {
+        "what": {
+          "q": "What is Yanchar Takhlil?",
+          "a": "A web app to follow the top 99 cryptocurrencies with live prices, charts and AI-assisted educational analysis, in three languages."
+        },
+        "data": {
+          "q": "Where does the data come from?",
+          "a": "From CoinGecko. It is refreshed about every minute and can lag by a few minutes."
+        },
+        "stablecoins": {
+          "q": "Why are there no stablecoins in the list?",
+          "a": "Stablecoins and wrapped tokens track the dollar or other assets. The list focuses on coins that show real market movement."
+        },
+        "ai": {
+          "q": "How does the AI analysis work?",
+          "a": "Our code computes the indicators; the AI explains the signal, the reasons and the risks using exactly those numbers."
+        },
+        "advice": {
+          "q": "Is this financial advice?",
+          "a": "No. It is for information and education only. Your decisions are your own responsibility."
+        },
+        "price": {
+          "q": "Do I need an account? Is it paid?",
+          "a": "For now, no account is needed and the site is free."
+        }
+      }
+    },
+    "cta": {
+      "title": "Start with the top 99",
+      "body": "Live prices, charts and clear numbers, in your language.",
+      "button": "Explore markets"
+    }
   },
   "LocaleSwitcher": {
     "label": "Language",
@@ -152,7 +248,7 @@
     },
     "ai": {
       "title": "AI Analyst",
-      "body": "Tahlilchi will analyze {name} with indicators computed from market data and explain its view: buy, hold or sell.",
+      "body": "The AI Analyst will analyze {name} with indicators computed from market data and explain its view: buy, hold or sell.",
       "comingSoon": "Coming soon"
     }
   },

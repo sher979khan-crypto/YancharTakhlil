@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { CrystalConstellationPoster } from "@/components/features/hero/crystal-constellation-poster";
+import { Faq } from "@/components/features/home/faq";
+import { FeaturesSection } from "@/components/features/home/features-section";
+import { FinalCta } from "@/components/features/home/final-cta";
 import { HomeLive } from "@/components/features/home/home-live";
+import { HowItWorks } from "@/components/features/home/how-it-works";
 import { MarketPulse } from "@/components/features/home/market-pulse";
 import { TickerTape } from "@/components/features/home/ticker-tape";
 import { TopMovers } from "@/components/features/home/top-movers";
+import { WhyUs } from "@/components/features/home/why-us";
 import { buttonClassName } from "@/components/ui/button";
 import { DemoBanner } from "@/components/ui/demo-banner";
 import { GlassPanel } from "@/components/ui/glass-panel";
@@ -62,18 +67,25 @@ export default async function HomePage() {
         <CrystalConstellationPoster className="mx-auto max-w-md lg:max-w-none" />
       </div>
 
-      {/* Step 9c adds the content sections below this block. */}
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 sm:px-8">
-        {isDemo ? <DemoBanner /> : null}
-        {coins ? (
-          <HomeLive initial={coins}>{pulse}</HomeLive>
-        ) : (
-          <>
-            <TickerTape coins={null} locale={locale} />
-            {pulse}
-            <TopMovers movers={null} locale={locale} />
-          </>
-        )}
+      {/* One rhythm between top-level sections; the live block keeps its tighter inner gap. */}
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 pb-16 sm:gap-20 sm:px-8 sm:pb-24">
+        <div className="flex flex-col gap-10">
+          {isDemo ? <DemoBanner /> : null}
+          {coins ? (
+            <HomeLive initial={coins}>{pulse}</HomeLive>
+          ) : (
+            <>
+              <TickerTape coins={null} locale={locale} />
+              {pulse}
+              <TopMovers movers={null} locale={locale} />
+            </>
+          )}
+        </div>
+        <FeaturesSection />
+        <HowItWorks />
+        <WhyUs />
+        <Faq />
+        <FinalCta />
       </div>
     </div>
   );

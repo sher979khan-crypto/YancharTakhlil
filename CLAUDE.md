@@ -60,7 +60,9 @@ src/
                               CoinStats (server, solid cards)
   components/features/home/   HomeLive (client: ONE useCoinsPolling feeds TickerTape + TopMovers; the
                               server-rendered MarketPulse is passed in as children), TickerTape (CSS
-                              marquee), MarketPulse (server, 4 StatTiles), TopMovers, MarketDataUnavailable
+                              marquee), MarketPulse (server, 4 StatTiles), TopMovers, MarketDataUnavailable;
+                              static content sections (server, no client JS): FeaturesSection, HowItWorks,
+                              WhyUs, Faq (native <details>, FAQ_ITEM_IDS = Home.faq.items), FinalCta
   lib/domain/                 zod schemas, inferred types and pure business logic (market, errors,
                               coin-filter, stablecoin-watch, market-list, coin-stats). No I/O.
   lib/api/                    /api/v1 contract (contract.ts: zod schemas, no server-only, shared with the
@@ -110,7 +112,8 @@ Tests are colocated as *.test.ts(x).
   fixture -> fixture; coingecko without key -> MarketDataError CONFIG (never silently demo data).
 - CoinGecko quota: ONE /coins/markets call (per_page=250, page=1, price_change_percentage=1h,24h,7d,30d,
   sparkline=true) feeds both getTopCoins and getCoinDetail. Never call /coins/{id}. Only market_chart
-  (daily) and /global cost extra calls.
+  (daily) and /global cost extra calls. The 7-day chart is the tail of the cached 30-day series (no call
+  of its own); only 30 and 90 days call market_chart.
 - The 7-day sparkline (Coin.sparkline7d, <= 42 points, oldest first, null when missing/short) is part of
   that single markets call (sparkline_in_7d.price, nulls dropped, downsampled keeping first and last).
   Never fetch a chart endpoint to draw a list sparkline. The API key travels only in the x-cg-{demo,pro}-api-key header.
@@ -141,6 +144,9 @@ Tests are colocated as *.test.ts(x).
   upstream error details to the client.
 
 ## 7. AI agents
+- Display names per locale (code names Kotib / Tahlilchi stay in code and docs only):
+  en "AI Analyst" / "AI Assistant"; ar "المحلل الذكي" / "المساعد الذكي"; uz "AI Tahlilchi" / "AI Kotib".
+  UI copy never shows a Latin agent name in en or ar.
 - Two agents share one core (lib/ai/core): OpenRouter client, timeouts, fallback model, per-agent rate
   limit, daily budget, and input size limits.
 - Assistant "Kotib": floating chat button on every page, streaming responses, languages en/ar/uz.
@@ -388,3 +394,13 @@ Tests are colocated as *.test.ts(x).
   price / (1 + change7d) and the 30-day chart at price / (1 + change30d) (piecewise linear by day, flat
   before day 29). Both anchors and the tail property (7 ⊂ 30 ⊂ 90) hold exactly.
 - 2026-09-27: Exclusions: CoinGecko id "united-stables" added to "ids" (not the symbol "u").
+- 2026-09-27: Step 9c. Home content sections after top movers: features, how it works, why us, FAQ,
+  final CTA (all Server Components). FAQ Q/A live in Home.faq.items.{id}.{q,a} for reuse by the Step 15
+  knowledge base; "for now" free, never "always free". Repeated cards are glass surfaces (no blur); the CTA
+  band is the only new blurred layer (header + CTA + footer = 3 at the page bottom). Scroll-driven reveal
+  animations were not added (optional).
+- 2026-09-27: Browser fetchers in src/lib/api use cache: "no-store", so the CDN s-maxage headers can never
+  make the browser HTTP cache answer a poll. Server Cache-Control is unchanged.
+- 2026-09-27: CoinGecko getDailyPrices(7) slices the cached 30-day series (one market_chart call per coin
+  per 30 min for 7D + 30D). The provider contract now requires 7 days = tail of 30 days.
+- 2026-09-27: Agent display names per locale (see §7); the coin page AI placeholder uses them.

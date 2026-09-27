@@ -35,6 +35,9 @@ async function fetchResult<T>(
 ): Promise<MarketResult<T>> {
   const response = await fetchImpl(endpoint, {
     signal,
+    // The API sends CDN cache headers (s-maxage); without no-store the browser HTTP cache could
+    // answer a poll with the same body again, so polling would never see fresh data.
+    cache: "no-store",
     headers: { accept: "application/json" },
   });
   if (!response.ok) throw new Error(`GET ${endpoint} failed with ${response.status}`);

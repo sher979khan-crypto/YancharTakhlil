@@ -117,6 +117,24 @@ describe("fetchCoinChart", () => {
   });
 });
 
+describe("browser HTTP cache", () => {
+  const expected = expect.objectContaining({ cache: "no-store" });
+
+  it("bypasses it for every fetcher, so polls always reach the network", async () => {
+    const list = respond({ data: [coin], meta });
+    await fetchCoins(undefined, list);
+    expect(list).toHaveBeenCalledWith(COINS_ENDPOINT, expected);
+
+    const detail = respond({ error: { code: "NOT_FOUND", message: "x" } }, 404);
+    await expect(fetchCoinDetail("bitcoin", undefined, detail)).rejects.toThrow();
+    expect(detail).toHaveBeenCalledWith("/api/v1/coins/bitcoin", expected);
+
+    const chart = respond({ data: [], meta });
+    await fetchCoinChart("bitcoin", 7, undefined, chart);
+    expect(chart).toHaveBeenCalledWith(coinChartEndpoint("bitcoin", 7), expected);
+  });
+});
+
 describe("nextPollDelay", () => {
   it("waits for the rest of the interval, never less than 0", () => {
     expect(nextPollDelay(0, 20_000, 60_000)).toBe(40_000);

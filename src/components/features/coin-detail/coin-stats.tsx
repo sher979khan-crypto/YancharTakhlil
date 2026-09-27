@@ -136,9 +136,11 @@ function RangeBar({ coin, locale }: CoinStatsProps) {
     value === null ? NOT_A_NUMBER : formatPrice(value, locale);
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Low on the left, high on the right in every locale: a scale, like the chart. */}
-      <div dir="ltr" aria-hidden className="relative my-1.5 h-1.5 rounded-full bg-surface-3">
+    // Low on the left, high on the right in every locale: a scale, like the chart. The bar and its
+    // labels share one LTR container, so "low" always sits under the bar's low end; the label text
+    // keeps its own direction through <bdi>.
+    <div dir="ltr" className="flex flex-col gap-3">
+      <div aria-hidden className="relative my-1.5 h-1.5 rounded-full bg-surface-3">
         {position === null ? null : (
           <>
             <div
@@ -152,15 +154,19 @@ function RangeBar({ coin, locale }: CoinStatsProps) {
           </>
         )}
       </div>
-      <dl dir="ltr" className="flex justify-between gap-4 text-sm">
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-fg-muted">{t("low")}</dt>
+      <dl className="flex justify-between gap-4 text-sm">
+        <div className="flex flex-col items-start gap-0.5">
+          <dt className="text-fg-muted">
+            <bdi>{t("low")}</bdi>
+          </dt>
           <dd>
             <Num>{format(coin.low24hUsd)}</Num>
           </dd>
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <dt className="text-fg-muted">{t("high")}</dt>
+          <dt className="text-fg-muted">
+            <bdi>{t("high")}</bdi>
+          </dt>
           <dd>
             <Num>{format(coin.high24hUsd)}</Num>
           </dd>

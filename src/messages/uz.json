@@ -25,7 +25,103 @@
       "viewAll": "Barcha bozorlarni koʻrish",
       "empty": "Hozircha bu roʻyxatda tanga yoʻq."
     },
-    "dataUnavailable": "Bozor maʼlumotlari vaqtincha mavjud emas. Keyinroq qayta urinib koʻring."
+    "dataUnavailable": "Bozor maʼlumotlari vaqtincha mavjud emas. Keyinroq qayta urinib koʻring.",
+    "features": {
+      "title": "Nimalar qila olasiz",
+      "comingSoon": "Tez orada",
+      "items": {
+        "markets": {
+          "title": "Jonli bozorlar",
+          "body": "Eng yirik 99 ta kriptovalyuta: har daqiqada yangilanadigan narxlar, qidiruv, saralash va 7 kunlik grafiklar.",
+          "link": "Bozorlarni ochish"
+        },
+        "coin": {
+          "title": "Tanga haqida batafsil",
+          "body": "Har bir tanga uchun batafsil sahifa: interaktiv grafik, bozor koʻrsatkichlari, tarixiy eng yuqori va eng past narx.",
+          "link": "Tangani koʻrish"
+        },
+        "analyst": {
+          "title": "AI Tahlilchi",
+          "body": "Tanlangan tanga boʻyicha sotib olish / ushlab turish / sotish fikri: aniq raqamlarga tayanadi, sabablar va xavflar bilan."
+        },
+        "assistant": {
+          "title": "AI Kotib",
+          "body": "Kriptovalyutalar, savdo asoslari yoki ushbu ilova haqida ingliz, arab yoki oʻzbek tilida soʻrang."
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "Qanday ishlaydi",
+      "steps": {
+        "pick": {
+          "title": "Tangani tanlang",
+          "body": "Eng yirik 99 ta tangadan istalganini tanlang."
+        },
+        "compute": {
+          "title": "Kod hisoblaydi",
+          "body": "RSI, harakatlanuvchi oʻrtachalar va volatillik kabi indikatorlarni real bozor maʼlumotlaridan sunʼiy intellekt emas, bizning kodimiz hisoblaydi."
+        },
+        "explain": {
+          "title": "AI tushuntiradi",
+          "body": "Har bir sabab real raqamga tayanadi; xavflar va fikr oʻz kuchini yoʻqotadigan daraja ham koʻrsatiladi."
+        }
+      }
+    },
+    "why": {
+      "title": "Nega Yanchar Takhlil",
+      "items": {
+        "data": {
+          "title": "Ishonchli maʼlumotlar",
+          "body": "Bozor maʼlumotlari CoinGecko manbasidan olinadi va taxminan har daqiqada yangilanadi."
+        },
+        "numbers": {
+          "title": "Avval raqamlar",
+          "body": "AI hech qachon raqam oʻylab topmaydi: u foydalanadigan har bir raqam maʼlumotlar bilan solishtirib tekshiriladi."
+        },
+        "languages": {
+          "title": "Uch til",
+          "body": "Ingliz tili, oʻngdan chapga toʻliq yoʻnaltirilgan arab tili va oʻzbek tili."
+        },
+        "transparent": {
+          "title": "Shaffoflik",
+          "body": "Moliyaviy maslahat emasligi haqida aniq ogohlantirish, demo maʼlumotlar esa doim belgilab qoʻyiladi."
+        }
+      }
+    },
+    "faq": {
+      "title": "Koʻp beriladigan savollar",
+      "items": {
+        "what": {
+          "q": "Yanchar Takhlil nima?",
+          "a": "Eng yirik 99 ta kriptovalyutani jonli narxlar, grafiklar va sunʼiy intellekt yordamidagi taʼlimiy tahlil bilan uch tilda kuzatish uchun veb-ilova."
+        },
+        "data": {
+          "q": "Maʼlumotlar qayerdan olinadi?",
+          "a": "CoinGecko manbasidan. Ular taxminan har daqiqada yangilanadi va bir necha daqiqaga kechikishi mumkin."
+        },
+        "stablecoins": {
+          "q": "Nega roʻyxatda steyblkoinlar yoʻq?",
+          "a": "Steyblkoinlar va oʻralgan (wrapped) tokenlar dollar yoki boshqa aktivlar narxini kuzatib boradi. Roʻyxat haqiqiy bozor harakatini koʻrsatadigan tangalarga qaratilgan."
+        },
+        "ai": {
+          "q": "AI tahlili qanday ishlaydi?",
+          "a": "Indikatorlarni bizning kodimiz hisoblaydi; AI esa aynan shu raqamlar asosida signal, sabablar va xavflarni tushuntiradi."
+        },
+        "advice": {
+          "q": "Bu moliyaviy maslahatmi?",
+          "a": "Yoʻq. Bu faqat axborot va taʼlim maqsadida. Qarorlaringiz uchun oʻzingiz javobgarsiz."
+        },
+        "price": {
+          "q": "Hisob kerakmi? Bu pullikmi?",
+          "a": "Hozircha hisob ochish shart emas va sayt bepul."
+        }
+      }
+    },
+    "cta": {
+      "title": "Eng yirik 99 tadan boshlang",
+      "body": "Jonli narxlar, grafiklar va aniq raqamlar, oʻz tilingizda.",
+      "button": "Bozorlarni koʻrish"
+    }
   },
   "LocaleSwitcher": {
     "label": "Til",
@@ -151,8 +247,8 @@
       "summary": "{days} kunlik oʻzgarish: {change}, eng past {low}, eng yuqori {high}"
     },
     "ai": {
-      "title": "AI tahlilchi",
-      "body": "Tahlilchi {name} tangasini bozor maʼlumotlaridan hisoblangan indikatorlar asosida tahlil qiladi va fikrini tushuntiradi: sotib olish, ushlab turish yoki sotish.",
+      "title": "AI Tahlilchi",
+      "body": "AI Tahlilchi {name} tangasini bozor maʼlumotlaridan hisoblangan indikatorlar asosida tahlil qiladi va fikrini tushuntiradi: sotib olish, ushlab turish yoki sotish.",
       "comingSoon": "Tez orada"
     }
   },

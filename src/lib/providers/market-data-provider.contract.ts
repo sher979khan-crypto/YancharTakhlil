@@ -106,6 +106,14 @@ export function runMarketDataProviderContract(
       expect(dates.every((date, i) => i === 0 || (dates[i - 1] ?? "") < date)).toBe(true);
     });
 
+    it("returns the 7-day series as the tail of the 30-day series", async () => {
+      const [first] = topCoins;
+      if (!first) throw new Error("empty top list");
+      const month = await provider.getDailyPrices(first.id, 30);
+      const week = await provider.getDailyPrices(first.id, 7);
+      expect(week.data).toEqual(month.data.slice(-7));
+    });
+
     it("returns a valid global market", async () => {
       marketResultSchema(GlobalMarketSchema).parse(await provider.getGlobalMarket());
     });

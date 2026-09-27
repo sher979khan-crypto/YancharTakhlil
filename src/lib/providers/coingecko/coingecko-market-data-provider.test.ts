@@ -228,12 +228,38 @@ describe("createCoinGeckoMarketDataProvider: daily prices", () => {
     });
   });
 
-  it("caches each id and range separately", async () => {
+  it("caches each id and fetched range separately", async () => {
     const { provider, paths } = setup();
-    await provider.getDailyPrices("bitcoin", 7);
-    await provider.getDailyPrices("bitcoin", 7);
+    await provider.getDailyPrices("bitcoin", 30);
+    await provider.getDailyPrices("bitcoin", 30);
     await provider.getDailyPrices("bitcoin", 90);
     expect(paths().filter((path) => path.endsWith("/market_chart"))).toHaveLength(2);
+  });
+
+  it("serves 7 days as the tail of the cached 30-day series (no extra call)", async () => {
+    const { provider, fetchImpl } = setup();
+    const month = await provider.getDailyPrices("bitcoin", 30);
+    const week = await provider.getDailyPrices("bitcoin", 7);
+    expect(week.data).toEqual(month.data.slice(-7));
+    expect(week.fetchedAt).toBe(month.fetchedAt);
+
+    const charts = fetchImpl.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/market_chart"),
+    );
+    expect(charts).toHaveLength(1);
+    expect(new URL(charts[0]?.[0] ?? "").searchParams.get("days")).toBe("30");
+  });
+
+  it("fetches 30 days when 7 is asked first, then reuses it for 30", async () => {
+    const { provider, fetchImpl } = setup();
+    const week = await provider.getDailyPrices("bitcoin", 7);
+    expect(week.data).toHaveLength(7);
+    await provider.getDailyPrices("bitcoin", 30);
+    const days = fetchImpl.mock.calls
+      .map(([url]) => new URL(url))
+      .filter((url) => url.pathname.endsWith("/market_chart"))
+      .map((url) => url.searchParams.get("days"));
+    expect(days).toEqual(["30"]);
   });
 
   function serveChart(fetchImpl: ReturnType<typeof setup>["fetchImpl"], prices: number[][]) {

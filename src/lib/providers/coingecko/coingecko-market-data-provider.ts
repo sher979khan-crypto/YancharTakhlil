@@ -46,6 +46,12 @@ type TopList = {
   details: CoinDetail[];
 };
 
+const WEEK_RANGE = 7 satisfies ChartRange;
+const MONTH_RANGE = 30 satisfies ChartRange;
+
+/** Ranges that cost a market_chart call; 7 days is sliced from the 30-day series. */
+type FetchedChartRange = Exclude<ChartRange, typeof WEEK_RANGE>;
+
 function invalid(message: string): MarketDataError {
   return new MarketDataError("INVALID_RESPONSE", message);
 }
@@ -134,6 +140,28 @@ export function createCoinGeckoMarketDataProvider({
     return { value: { data: detail, fetchedAt: value.fetchedAt }, stale };
   }
 
+  async function loadDaily(id: string, days: FetchedChartRange) {
+    return cache.load(
+      `daily:${id}:${days}`,
+      cacheTtl.dailyPrices * 1000,
+      async (): Promise<Fetched<DailyPrice[]>> => {
+        const { body, receivedAt } = await coingeckoFetch(
+          `/coins/${encodeURIComponent(id)}/market_chart`,
+          { vs_currency: "usd", days: String(days), interval: "daily" },
+          { ttl: cacheTtl.dailyPrices, tags: [`coingecko:chart:${id}`] },
+        );
+        const chart = MarketChartResponseSchema.safeParse(body);
+        if (!chart.success) throw invalid("CoinGecko chart response is malformed");
+        const points = mapDailyPrices(chart.data, days);
+        // A short series (young coin) is returned as is, never padded; one point is no chart.
+        if (points.length < MIN_DAILY_POINTS) {
+          throw invalid("CoinGecko chart has too few daily points");
+        }
+        return { data: points, fetchedAt: receivedAt };
+      },
+    );
+  }
+
   return {
     async getTopCoins() {
       const { value, stale } = await loadTopList();
@@ -150,25 +178,13 @@ export function createCoinGeckoMarketDataProvider({
     async getDailyPrices(id, range: ChartRange) {
       // The whitelist check comes first: unknown ids never reach the chart endpoint.
       await findDetail(id);
-      const { value, stale } = await cache.load(
-        `daily:${id}:${range}`,
-        cacheTtl.dailyPrices * 1000,
-        async (): Promise<Fetched<DailyPrice[]>> => {
-          const { body, receivedAt } = await coingeckoFetch(
-            `/coins/${encodeURIComponent(id)}/market_chart`,
-            { vs_currency: "usd", days: String(range), interval: "daily" },
-            { ttl: cacheTtl.dailyPrices, tags: [`coingecko:chart:${id}`] },
-          );
-          const chart = MarketChartResponseSchema.safeParse(body);
-          if (!chart.success) throw invalid("CoinGecko chart response is malformed");
-          const points = mapDailyPrices(chart.data, range);
-          // A short series (young coin) is returned as is, never padded; one point is no chart.
-          if (points.length < MIN_DAILY_POINTS) {
-            throw invalid("CoinGecko chart has too few daily points");
-          }
-          return { data: points, fetchedAt: receivedAt };
-        },
-      );
+      if (range === WEEK_RANGE) {
+        // Quota: the week is the tail of the cached 30-day series, so switching 30D -> 7D costs no
+        // extra market_chart call. The tail of a series with >= 2 points has >= 2 points too.
+        const { value, stale } = await loadDaily(id, MONTH_RANGE);
+        return result({ ...value, data: value.data.slice(-WEEK_RANGE) }, stale);
+      }
+      const { value, stale } = await loadDaily(id, range);
       return result(value, stale);
     },
 
