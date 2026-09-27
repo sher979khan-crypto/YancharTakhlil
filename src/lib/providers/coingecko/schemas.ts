@@ -35,6 +35,8 @@ export const MarketItemSchema = z.object({
   price_change_percentage_24h_in_currency: optionalNumber,
   price_change_percentage_7d_in_currency: optionalNumber,
   price_change_percentage_30d_in_currency: optionalNumber,
+  // Requested with sparkline=true: hourly prices over 7 days (~168). Gaps come back as null.
+  sparkline_in_7d: z.object({ price: z.array(z.number().nullable()) }).nullish(),
 });
 export type MarketItem = z.infer<typeof MarketItemSchema>;
 

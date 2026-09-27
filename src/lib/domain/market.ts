@@ -7,6 +7,11 @@ const pct = z.number();
 // Offsets are accepted because upstream APIs are not guaranteed to send "Z".
 const isoDateTime = z.iso.datetime({ offset: true });
 
+/** Points in a 7-day sparkline: one per 4 hours. */
+export const SPARKLINE_POINTS = 42;
+/** Prices over the last 7 days, oldest first. A line needs two points. */
+export const SparklineSchema = z.array(usd).min(2).max(SPARKLINE_POINTS);
+
 export const CoinSchema = z.object({
   id: z.string().min(1),
   symbol: z.string().min(1).uppercase(),
@@ -22,6 +27,8 @@ export const CoinSchema = z.object({
   high24hUsd: usd.nullable(),
   low24hUsd: usd.nullable(),
   lastUpdated: isoDateTime,
+  /** Part of the single markets call (no extra request); null when upstream has too little data. */
+  sparkline7d: SparklineSchema.nullable(),
 });
 export type Coin = z.infer<typeof CoinSchema>;
 

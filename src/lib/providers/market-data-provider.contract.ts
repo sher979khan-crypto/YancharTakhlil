@@ -12,6 +12,7 @@ import {
   CoinDetailSchema,
   CoinSchema,
   DailyPriceSchema,
+  SPARKLINE_POINTS,
   GlobalMarketSchema,
   marketResultSchema,
   type Coin,
@@ -68,6 +69,18 @@ export function runMarketDataProviderContract(
     it("ranks coins 1..n in order with unique ids", () => {
       expect(topCoins.map((coin) => coin.rank)).toEqual(topCoins.map((_, index) => index + 1));
       expect(new Set(topCoins.map((coin) => coin.id)).size).toBe(topCoins.length);
+    });
+
+    it("gives each coin a sparkline of 2..42 non-negative points, or null", () => {
+      for (const coin of topCoins) {
+        if (coin.sparkline7d === null) continue;
+        expect(coin.sparkline7d.length, coin.id).toBeGreaterThanOrEqual(2);
+        expect(coin.sparkline7d.length, coin.id).toBeLessThanOrEqual(SPARKLINE_POINTS);
+        expect(
+          coin.sparkline7d.every((price) => price >= 0),
+          coin.id,
+        ).toBe(true);
+      }
     });
 
     it("returns a valid detail for a listed coin", async () => {

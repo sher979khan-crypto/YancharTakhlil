@@ -1,8 +1,11 @@
 import "server-only";
 
 import { MarketDataError } from "@/lib/domain/errors";
+import { downsample } from "@/lib/domain/market-list";
 import {
   CoinDetailSchema,
+  SPARKLINE_POINTS,
+  SparklineSchema,
   DailyPriceSchema,
   GlobalMarketSchema,
   type CoinDetail,
@@ -30,6 +33,26 @@ export function toHttpsUrl(value: string | null | undefined): string | null {
   return new URL(value).protocol === "https:" ? value : null;
 }
 
+/**
+ * A 32px-tall line needs far less than the 17 digits upstream sends; 5 significant digits is
+ * 0.01% of the price and cuts the /api/v1/coins payload (polled every minute) roughly in half.
+ */
+export const SPARKLINE_SIGNIFICANT_DIGITS = 5;
+
+/**
+ * CoinGecko's hourly 7-day sparkline, gaps dropped, reduced to SPARKLINE_POINTS (first and last
+ * kept) and rounded. Null when it is missing or too short to draw, so one bad sparkline never
+ * drops the coin.
+ */
+export function mapSparkline(sparkline: MarketItem["sparkline_in_7d"]): number[] | null {
+  const prices = (sparkline?.price ?? []).filter((price): price is number => price !== null);
+  const points = downsample(prices, SPARKLINE_POINTS).map((price) =>
+    Number(price.toPrecision(SPARKLINE_SIGNIFICANT_DIGITS)),
+  );
+  const result = SparklineSchema.safeParse(points);
+  return result.success ? result.data : null;
+}
+
 export type MarketItemResult =
   | { ok: true; coin: CoinDetail }
   /** "unranked": no rank or price (expected upstream, e.g. wrapped tokens). "invalid": malformed. */
@@ -51,6 +74,7 @@ function toCandidate(item: MarketItem, fallbackUpdatedAt: string) {
     high24hUsd: item.high_24h ?? null,
     low24hUsd: item.low_24h ?? null,
     lastUpdated: toIsoDateTime(item.last_updated) ?? fallbackUpdatedAt,
+    sparkline7d: mapSparkline(item.sparkline_in_7d),
     change30dPct: item.price_change_percentage_30d_in_currency ?? null,
     circulatingSupply: item.circulating_supply ?? null,
     totalSupply: item.total_supply ?? null,

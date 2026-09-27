@@ -43,7 +43,54 @@
     "metaTitle": "Bozorlar",
     "title": "Bozorlar",
     "description": "Eng yirik 99 ta kriptovalyutaning narxlari, bozor kapitallashuvi va 24 soatlik oʻzgarishlari.",
-    "comingSoon": "Jonli roʻyxat tez orada"
+    "search": {
+      "label": "Tangalarni qidirish",
+      "placeholder": "Nomi yoki belgisi, masalan BTC",
+      "clear": "Qidiruvni tozalash"
+    },
+    "tabs": {
+      "label": "Koʻrsatish",
+      "all": "Barchasi",
+      "gainers": "Oʻsganlar",
+      "losers": "Tushganlar"
+    },
+    "table": {
+      "caption": "Bozor kapitallashuvi boʻyicha yetakchi kriptovalyutalar",
+      "rank": "Oʻrin",
+      "coin": "Tanga",
+      "price": "Narx",
+      "change1h": "1 soat",
+      "change24h": "24 soat",
+      "change7d": "7 kun",
+      "marketCap": "Kapitallashuv",
+      "volume": "Hajm (24 soat)",
+      "chart": "Soʻnggi 7 kun"
+    },
+    "sort": {
+      "label": "Saralash",
+      "asc": "{column}, oʻsish tartibida",
+      "desc": "{column}, kamayish tartibida"
+    },
+    "results": "{count} ta tanga",
+    "empty": {
+      "search": "«{query}» boʻyicha tanga topilmadi.",
+      "clear": "Qidiruvni tozalash",
+      "gainers": "Soʻnggi 24 soatda oʻsgan tanga yoʻq.",
+      "losers": "Soʻnggi 24 soatda tushgan tanga yoʻq."
+    },
+    "source": {
+      "demo": "Demo",
+      "live": "Jonli"
+    },
+    "stale": "Soʻnggi saqlangan narxlar koʻrsatilmoqda: maʼlumot manbasi hozir javob bermayapti.",
+    "pollError": "Narxlarni yangilab boʻlmadi. Oxirgi yuklangan maʼlumotlar koʻrsatilmoqda.",
+    "retry": "Qayta urinish",
+    "updated": {
+      "justNow": "Hozirgina yangilandi",
+      "seconds": "{n} soniya oldin yangilandi",
+      "minutes": "{n} daqiqa oldin yangilandi",
+      "hours": "{n} soat oldin yangilandi"
+    }
   },
   "Disclaimer": {
     "metaTitle": "Masʼuliyatdan voz kechish",

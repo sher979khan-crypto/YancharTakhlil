@@ -103,6 +103,8 @@ export function createCoinGeckoMarketDataProvider({
           per_page: String(COINGECKO_MARKETS_PER_PAGE),
           page: "1",
           price_change_percentage: COINGECKO_PRICE_CHANGE_WINDOWS,
+          // The list's 7-day sparklines ride along in the same call: no extra quota.
+          sparkline: "true",
         },
         { ttl: cacheTtl.markets, tags: ["coingecko:markets"] },
       );

@@ -45,12 +45,15 @@ src/
                               home page too). No route-level loading.tsx (see §6).
     robots.ts, sitemap.ts, global-error.tsx
   components/ui/              Design-system primitives (Button, Card, Badge, ...)
-  components/features/<name>/ Feature components (coins, coin-detail, analyst, assistant, hero,
+  components/features/<name>/ Feature components (markets, coin-detail, analyst, assistant, hero,
                               site-header, site-footer, skip-link, brand, locale-switcher)
+  components/features/markets/ MarketsExplorer (client: search, tabs, sort, polling), CoinsTable (md+),
+                              CoinCards (< md), UpdatedAgo (client-only relative time), useCoinsPolling
   lib/domain/                 zod schemas, inferred types and pure business logic (market, errors,
-                              coin-filter, stablecoin-watch). No I/O.
+                              coin-filter, stablecoin-watch, market-list). No I/O.
   lib/api/                    /api/v1 contract (contract.ts: zod schemas, no server-only, shared with the
-                              client), params.ts, responses.ts (ok/fail, server-only), cache-headers.ts
+                              client), params.ts, responses.ts (ok/fail, server-only), cache-headers.ts,
+                              fetch-coins.ts (browser client for /api/v1/coins; imports contract.ts only)
   lib/providers/              Data-access interfaces, get-market-data-provider.ts, the provider contract
                               suite, and implementations (fixture/, json/, memory/, coingecko/)
   lib/env/                    server-env.ts: zod-validated server env (server-only)
@@ -91,14 +94,21 @@ Tests are colocated as *.test.ts(x).
 - Every MarketDataProvider must pass runMarketDataProviderContract (market-data-provider.contract.ts).
 - Provider selection (MARKET_DATA_PROVIDER): auto + key -> CoinGecko; auto without key -> fixture;
   fixture -> fixture; coingecko without key -> MarketDataError CONFIG (never silently demo data).
-- CoinGecko quota: ONE /coins/markets call (per_page=250, page=1, price_change_percentage=1h,24h,7d,30d)
-  feeds both getTopCoins and getCoinDetail. Never call /coins/{id}. Only market_chart (daily) and
-  /global cost extra calls. The API key travels only in the x-cg-{demo,pro}-api-key header.
+- CoinGecko quota: ONE /coins/markets call (per_page=250, page=1, price_change_percentage=1h,24h,7d,30d,
+  sparkline=true) feeds both getTopCoins and getCoinDetail. Never call /coins/{id}. Only market_chart
+  (daily) and /global cost extra calls.
+- The 7-day sparkline (Coin.sparkline7d, <= 42 points, oldest first, null when missing/short) is part of
+  that single markets call (sparkline_in_7d.price, nulls dropped, downsampled keeping first and last).
+  Never fetch a chart endpoint to draw a list sparkline. The API key travels only in the x-cg-{demo,pro}-api-key header.
 - CoinGecko calls use Next's data cache (fetch `next: { revalidate: cacheTtl.X, tags }`), plus an
   in-process last-good cache that serves stale: true on upstream failure (best-effort per instance).
 - Static JSON is loaded with static imports (not fs) and zod-validated when the module loads.
 - No route-level loading.tsx above any page that can call notFound(): it makes the response stream and
   turns 404 into 200. Show loading states with <Suspense> inside the page, after validation/notFound checks.
+- The markets page is ISR (export const revalidate = 120, a literal equal to cacheTtl.markets) and the
+  client polls /api/v1/coins every cacheTtl.clientPolling seconds (paused while the tab is hidden).
+  Relative times ("Updated 30s ago") render only after mount; the server renders a placeholder.
+- List links to coin pages use prefetch={false}: 99 visible links must not render 99 coin pages.
 - Coin pages use on-demand ISR. NEVER pre-render all coins at build time (99 coins x 3 locales would
   exhaust the API quota).
 - Only coin IDs from the current top-99 list are accepted; everything else returns 404.
@@ -200,7 +210,8 @@ Tests are colocated as *.test.ts(x).
 - UI primitives live in src/components/ui: Button, Card (solid | glass), Badge (+ ice), Skeleton, PriceChange,
   TickerNumber, GlassPanel, SegmentedControl (client, radiogroup + roving tabindex, arrows follow reading
   direction), SearchInput (server-safe; clear button only with onClear from a client parent), StatTile,
-  CoinLogo (next/image; monogram fallback), DemoBanner (required with fixture data), icons.
+  CoinLogo (next/image; monogram fallback with a 1px ring at 24/32 and 2px at 40/64), DemoBanner
+  (required with fixture data), Sparkline (server-safe SVG, aria-hidden, LTR, colored by the 7d change), icons.
 - Remote images: next.config images.remotePatterns comes only from src/config/images.ts
   (https://coin-images.coingecko.com/coins/images/**). Never add wildcard hosts.
 - Use TickerNumber (live, animated) or PriceChange (percentage move) for all live numbers.
@@ -306,3 +317,14 @@ Tests are colocated as *.test.ts(x).
   listeners. Coin logos are optimized by next/image from coin-images.coingecko.com only (host taken from
   CoinGecko's documented /coins/markets sample); `search` is left open because every URL carries a
   timestamp query.
+- 2026-09-27: Step 9a. Markets page: ISR (revalidate 120) + client polling of /api/v1/coins every 60 s.
+  Coin.sparkline7d (<= 42 points) comes from the same /coins/markets call (sparkline=true). The fixture
+  builds it from the seeded daily series, tilted in log space so it starts at price / (1 + change7d)
+  and agrees with the 7d percentage shown next to it (the daily series itself ignores change7d).
+- 2026-09-27: Markets list behavior: tabs follow the Telegram bot (gainers = 24h > 0 biggest first,
+  losers = 24h < 0 biggest drop first, null 24h in neither); each tab has a default sort until the user
+  picks a column (switching tabs resets it); nulls always sort last. The desktop table hides 1h and the
+  7d chart below lg and volume below xl, so md (incl. ar/uz) never scrolls sideways; below md the list
+  is link cards with a sort select. Only the coin name is a link in the table (not the row).
+- 2026-09-27: Status that follows polling (Demo/Live badge, DemoBanner, "updated ago", stale notice,
+  poll error with Retry) lives in MarketsExplorer, not in the page, so it reflects the latest data.

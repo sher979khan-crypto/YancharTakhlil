@@ -13,6 +13,14 @@ const sizeClasses: Record<CoinLogoSize, string> = {
   64: "size-16 text-2xl",
 };
 
+// The gradient ring is the disc's padding: 1px on small logos, 2px where 1px would look thin.
+const ringClasses: Record<CoinLogoSize, string> = {
+  24: "p-px",
+  32: "p-px",
+  40: "p-0.5",
+  64: "p-0.5",
+};
+
 export type CoinLogoProps = {
   /** CoinGecko image URL (host allowed in src/config/images.ts), or null for the monogram. */
   src: string | null;
@@ -51,7 +59,8 @@ export function CoinLogo({
       aria-label={decorative ? undefined : name}
       aria-hidden={decorative || undefined}
       className={cn(
-        "inline-flex shrink-0 rounded-full bg-linear-to-br from-ice to-brand p-px",
+        "inline-flex shrink-0 rounded-full bg-linear-to-br from-ice to-brand",
+        ringClasses[size],
         sizeClasses[size],
         className,
       )}

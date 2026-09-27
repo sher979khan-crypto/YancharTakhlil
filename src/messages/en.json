@@ -43,7 +43,54 @@
     "metaTitle": "Markets",
     "title": "Markets",
     "description": "Prices, market caps and 24h changes for the top 99 cryptocurrencies.",
-    "comingSoon": "Live list coming soon"
+    "search": {
+      "label": "Search coins",
+      "placeholder": "Name or symbol, e.g. BTC",
+      "clear": "Clear search"
+    },
+    "tabs": {
+      "label": "Show",
+      "all": "All",
+      "gainers": "Gainers",
+      "losers": "Losers"
+    },
+    "table": {
+      "caption": "Top cryptocurrencies by market cap",
+      "rank": "Rank",
+      "coin": "Coin",
+      "price": "Price",
+      "change1h": "1h",
+      "change24h": "24h",
+      "change7d": "7d",
+      "marketCap": "Market cap",
+      "volume": "Volume (24h)",
+      "chart": "Last 7 days"
+    },
+    "sort": {
+      "label": "Sort by",
+      "asc": "{column}, ascending",
+      "desc": "{column}, descending"
+    },
+    "results": "{count} coins",
+    "empty": {
+      "search": "No coins match “{query}”.",
+      "clear": "Clear search",
+      "gainers": "No coin is up over the last 24 hours.",
+      "losers": "No coin is down over the last 24 hours."
+    },
+    "source": {
+      "demo": "Demo",
+      "live": "Live"
+    },
+    "stale": "Showing the last saved prices: the data provider is not responding right now.",
+    "pollError": "Could not refresh prices. Showing the last loaded data.",
+    "retry": "Retry",
+    "updated": {
+      "justNow": "Updated just now",
+      "seconds": "Updated {n}s ago",
+      "minutes": "Updated {n} min ago",
+      "hours": "Updated {n} h ago"
+    }
   },
   "Disclaimer": {
     "metaTitle": "Disclaimer",

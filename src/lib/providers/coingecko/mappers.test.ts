@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CoinDetailSchema } from "@/lib/domain/market";
+import { CoinDetailSchema, SPARKLINE_POINTS } from "@/lib/domain/market";
 
 import global from "./__fixtures__/global.json";
 import chart7d from "./__fixtures__/market-chart-7d.json";
@@ -10,6 +10,7 @@ import {
   mapGlobalMarket,
   mapMarketItem,
   mapMarkets,
+  mapSparkline,
   toHttpsUrl,
   toIsoDateTime,
 } from "./mappers";
@@ -105,6 +106,43 @@ describe("mapMarkets", () => {
     expect(mapped).toMatchObject({ unranked: 1, invalid: 2 });
     expect(mapped.coins).toHaveLength(markets.length - 1);
     expect(mapped.coins[0]?.id).toBe("bitcoin");
+  });
+});
+
+describe("mapSparkline", () => {
+  const hourly = Array.from({ length: 168 }, (_, i) => 100 + i);
+
+  it("downsamples ~168 hourly prices to 42, keeping the first and the last", () => {
+    const points = mapSparkline({ price: hourly });
+    expect(points).toHaveLength(SPARKLINE_POINTS);
+    expect(points?.[0]).toBe(100);
+    expect(points?.at(-1)).toBe(267);
+    // Ascending input stays ascending: the order in time is kept.
+    expect(points).toEqual([...(points ?? [])].sort((a, b) => a - b));
+  });
+
+  it("rounds to 5 significant digits", () => {
+    expect(mapSparkline({ price: [80_531.500_456_826_59, 0.396_308_488_492_173_37] })).toEqual([
+      80_532, 0.396_31,
+    ]);
+  });
+
+  it("drops null gaps before downsampling", () => {
+    const points = mapSparkline({ price: [1, null, 2, null, 3] });
+    expect(points).toEqual([1, 2, 3]);
+  });
+
+  it("returns null when the sparkline is missing, empty or too short", () => {
+    expect(mapSparkline(undefined)).toBeNull();
+    expect(mapSparkline(null)).toBeNull();
+    expect(mapSparkline({ price: [] })).toBeNull();
+    expect(mapSparkline({ price: [5, null] })).toBeNull();
+  });
+
+  it("returns null for negative prices instead of dropping the coin", () => {
+    expect(mapSparkline({ price: [1, -2, 3] })).toBeNull();
+    const result = mapMarketItem({ ...bitcoin, sparkline_in_7d: { price: [1, -2, 3] } }, FALLBACK);
+    expect(result).toMatchObject({ ok: true, coin: { sparkline7d: null } });
   });
 });
 

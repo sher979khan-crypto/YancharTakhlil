@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { CHART_RANGES } from "@/lib/domain/market";
+import { CHART_RANGES, SPARKLINE_POINTS } from "@/lib/domain/market";
 
-import { dailyVolatility, generateDailyPrices } from "./daily-prices";
+import { dailyVolatility, generateDailyPrices, generateSparkline } from "./daily-prices";
 
 const bitcoin = { id: "bitcoin", priceUsd: 97250, marketCapUsd: 1.9e12, volume24hUsd: 3.8e10 };
 const micro = { id: "pepe", priceUsd: 0.00000981, marketCapUsd: 4.1e9, volume24hUsd: 7.4e8 };
@@ -107,5 +107,45 @@ describe("dailyVolatility", () => {
     expect(dailyVolatility(1e10)).toBeCloseTo(0.04);
     expect(dailyVolatility(1e3)).toBe(0.08);
     expect(dailyVolatility(0)).toBe(0.08);
+  });
+});
+
+describe("generateSparkline", () => {
+  const flat = { ...bitcoin, change7dPct: null };
+
+  it("has 42 positive points ending exactly at the current price", () => {
+    for (const coin of [flat, { ...micro, change7dPct: 12 }]) {
+      const points = generateSparkline(coin, SEED_DATE);
+      expect(points).toHaveLength(SPARKLINE_POINTS);
+      expect(points.every((point) => point > 0)).toBe(true);
+      expect(points.at(-1)).toBe(coin.priceUsd);
+    }
+  });
+
+  it("is deterministic", () => {
+    expect(generateSparkline(flat, SEED_DATE)).toEqual(generateSparkline(flat, SEED_DATE));
+  });
+
+  it("passes through the daily closes of the 7-day chart when there is no 7d change", () => {
+    const points = generateSparkline(flat, SEED_DATE);
+    const closes = generateDailyPrices(flat, 7, SEED_DATE).map((point) => point.closeUsd);
+    // Every sixth point (one per day, 4-hour steps) is that day's close.
+    const daily = points.filter((_, i) => (i + 1) % 6 === 0);
+    expect(daily.slice(-closes.length, -1)).toEqual(closes.slice(0, -1));
+  });
+
+  it.each([-7.2, -2.35, 1.9, 11.2])("starts where a %f% 7-day change says", (change7dPct) => {
+    const coin = { ...bitcoin, change7dPct };
+    const points = generateSparkline(coin, SEED_DATE);
+    const expectedStart = coin.priceUsd / (1 + change7dPct / 100);
+    // The first point is 4 hours after the 7-day mark, so it is close to, not exactly, the start.
+    expect(Math.abs(Math.log((points[0] ?? 0) / expectedStart))).toBeLessThan(0.03);
+    expect(Math.sign((points.at(-1) ?? 0) - (points[0] ?? 0))).toBe(Math.sign(change7dPct));
+  });
+
+  it("is not a straight line between the closes", () => {
+    const points = generateSparkline(flat, SEED_DATE);
+    const [a = 0, b = 0, c = 0] = points;
+    expect(b - a).not.toBeCloseTo(c - b, 6);
   });
 });

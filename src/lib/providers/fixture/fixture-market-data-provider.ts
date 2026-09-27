@@ -15,14 +15,15 @@ import type { ContentRepository } from "../content-repository";
 import { createJsonContentRepository } from "../json/json-content-repository";
 import type { MarketDataProvider } from "../market-data-provider";
 
-import { generateDailyPrices } from "./daily-prices";
+import { generateDailyPrices, generateSparkline } from "./daily-prices";
 
 export const MarketSnapshotSchema = z.object({
   capturedAt: z.iso.datetime({ offset: true }),
   note: z.string().min(1),
   global: GlobalMarketSchema,
+  // Sparklines are generated from the seeded series, not stored in the snapshot.
   coins: z
-    .array(CoinDetailSchema)
+    .array(CoinDetailSchema.omit({ sparkline7d: true }))
     .refine((coins) => new Set(coins.map((coin) => coin.id)).size === coins.length, {
       message: "Coin ids must be unique",
     }),
@@ -42,10 +43,13 @@ type FixtureMarketDataProviderOptions = {
 export function createFixtureMarketDataProvider({
   contentRepository = createJsonContentRepository(),
 }: FixtureMarketDataProviderOptions = {}): MarketDataProvider {
-  const details = filterTopCoins(snapshot.coins, contentRepository.getExcludedCoins());
+  const seedDate = snapshot.capturedAt.slice(0, 10);
+  const details: CoinDetail[] = filterTopCoins(
+    snapshot.coins,
+    contentRepository.getExcludedCoins(),
+  ).map((coin) => ({ ...coin, sparkline7d: generateSparkline(coin, seedDate) }));
   // Parsing with the narrower schema strips the detail-only fields.
   const topCoins = details.map((detail) => CoinSchema.parse(detail));
-  const seedDate = snapshot.capturedAt.slice(0, 10);
 
   function result<T>(data: T): MarketResult<T> {
     // Callers get their own copy; the snapshot is shared by every request.

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { cacheTtl } from "@/config/cache";
 import { MarketDataError } from "@/lib/domain/errors";
+import { SPARKLINE_POINTS } from "@/lib/domain/market";
 
 import markets from "./__fixtures__/markets.json";
 import {
@@ -75,7 +76,7 @@ describe("createCoinGeckoMarketDataProvider: top list and detail", () => {
     const [url, init] = fetchImpl.mock.calls[0] ?? [];
     expect(url).toBe(
       "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc" +
-        "&per_page=250&page=1&price_change_percentage=1h%2C24h%2C7d%2C30d",
+        "&per_page=250&page=1&price_change_percentage=1h%2C24h%2C7d%2C30d&sparkline=true",
     );
     expect(init?.next).toEqual({ revalidate: cacheTtl.markets, tags: ["coingecko:markets"] });
   });
@@ -100,7 +101,18 @@ describe("createCoinGeckoMarketDataProvider: top list and detail", () => {
       fullyDilutedValuationUsd: null,
       high24hUsd: null,
       change1hPct: null,
+      sparkline7d: null,
     });
+  });
+
+  it("adds a 42-point sparkline from the same markets call", async () => {
+    const { provider, fetchImpl } = setup();
+    const { data } = await provider.getTopCoins();
+    const bitcoin = data.find((coin) => coin.id === "bitcoin");
+    expect(bitcoin?.sparkline7d).toHaveLength(SPARKLINE_POINTS);
+    // The last hourly point is the current price in the sample (84160 has 4 significant digits).
+    expect(bitcoin?.sparkline7d?.at(-1)).toBe(bitcoin?.priceUsd);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it("treats excluded and unknown ids as NOT_FOUND", async () => {

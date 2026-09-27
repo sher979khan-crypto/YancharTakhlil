@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-import type { ChartRange, Coin, DailyPrice } from "@/lib/domain/market";
+import { SPARKLINE_POINTS, type ChartRange, type Coin, type DailyPrice } from "@/lib/domain/market";
 
 const DAY_MS = 86_400_000;
 /** Daily moves are capped at this many standard deviations so a sample chart never looks broken. */
@@ -86,4 +86,60 @@ export function generateDailyPrices(
     volume = coin.volume24hUsd * Math.exp(volumeNoise * VOLUME_SIGMA);
   }
   return points.reverse();
+}
+
+const SPARKLINE_DAYS = 7;
+const POINTS_PER_DAY = SPARKLINE_POINTS / SPARKLINE_DAYS;
+
+/**
+ * Log-price correction that makes a series from generateDailyPrices start where the coin's 7-day
+ * change says it did (price / (1 + change7d)). Zero without a usable change.
+ */
+function sevenDayTilt(firstClose: number, coin: SparklineCoin): number {
+  const change = coin.change7dPct;
+  if (change === null || change <= -100 || firstClose <= 0) return 0;
+  return Math.log(coin.priceUsd / (1 + change / 100)) - Math.log(firstClose);
+}
+
+type SparklineCoin = SeriesCoin & Pick<Coin, "change7dPct">;
+
+/**
+ * A sample 7-day sparkline (SPARKLINE_POINTS points, one per 4 hours) that ends at the current
+ * price. Its shape is the seeded 7-day daily series with a seeded Brownian bridge between two
+ * closes. That series ignores the snapshot's 7d change, so a linear tilt (in log space, fading
+ * to zero at "now") makes the line agree with the 7d percentage shown next to it; without a 7d
+ * change, every sixth point is exactly a daily close.
+ */
+export function generateSparkline(coin: SparklineCoin, seedDate: string): number[] {
+  // 30 days is the shortest range with the close from 7 days ago (the sparkline's start).
+  const closes = generateDailyPrices(coin, 30, seedDate)
+    .slice(-(SPARKLINE_DAYS + 1))
+    .map((point) => point.closeUsd);
+  const random = createRandom(hashString(`${coin.id}|${seedDate}|sparkline`));
+  const stepSigma = dailyVolatility(coin.marketCapUsd) / Math.sqrt(POINTS_PER_DAY);
+  const tilt = sevenDayTilt(closes[0] ?? coin.priceUsd, coin);
+
+  const points: number[] = [];
+  for (let day = 0; day < SPARKLINE_DAYS; day++) {
+    const from = Math.log(closes[day] ?? coin.priceUsd);
+    const to = Math.log(closes[day + 1] ?? coin.priceUsd);
+    const walk = [0];
+    for (let step = 1; step <= POINTS_PER_DAY; step++) {
+      const move = Math.max(-MAX_SIGMAS, Math.min(MAX_SIGMAS, normal(random))) * stepSigma;
+      walk.push((walk[step - 1] ?? 0) + move);
+    }
+    const end = walk[POINTS_PER_DAY] ?? 0;
+    for (let step = 1; step <= POINTS_PER_DAY; step++) {
+      const t = step / POINTS_PER_DAY;
+      // The bridge term is zero at t = 1, so each day ends exactly on its (tilted) close.
+      const bridge = (walk[step] ?? 0) - t * end;
+      const elapsed = (points.length + 1) / SPARKLINE_POINTS;
+      points.push(
+        roundSignificant(Math.exp(from + (to - from) * t + bridge + tilt * (1 - elapsed))),
+      );
+    }
+  }
+  // Exact current price, not a rounded copy of it.
+  points[points.length - 1] = coin.priceUsd;
+  return points;
 }
