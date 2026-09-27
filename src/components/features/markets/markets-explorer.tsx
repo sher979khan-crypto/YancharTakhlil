@@ -3,12 +3,10 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useMemo, useState, type ChangeEvent } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DemoBanner } from "@/components/ui/demo-banner";
 import { glassSurfaceClassName } from "@/components/ui/glass";
-import { AlertIcon } from "@/components/ui/icons";
 import { SearchInput } from "@/components/ui/search-input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { Coin, MarketResult } from "@/lib/domain/market";
@@ -29,6 +27,7 @@ import { cn } from "@/lib/utils/cn";
 
 import { CoinCards } from "./coin-cards";
 import { CoinsTable, columnMessageKey } from "./coins-table";
+import { PollErrorNotice, SourceBadge, StaleNotice } from "./market-status";
 import { UpdatedAgo } from "./updated-ago";
 import { useCoinsPolling } from "./use-coins-polling";
 
@@ -79,34 +78,13 @@ export function MarketsExplorer({ initial }: { initial: MarketResult<Coin[]> }) 
       {isDemo ? <DemoBanner /> : null}
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Badge tone={isDemo ? "brand" : "up"}>
-          {isDemo ? null : (
-            <span aria-hidden className="size-1.5 rounded-full bg-up motion-safe:animate-pulse" />
-          )}
-          {isDemo ? t("source.demo") : t("source.live")}
-        </Badge>
+        <SourceBadge source={result.source} />
         <UpdatedAgo timestamp={result.fetchedAt} />
       </div>
 
-      {result.stale ? (
-        <p role="status" className="flex items-start gap-2 text-sm text-brand">
-          <AlertIcon className="mt-0.5" />
-          <span>{t("stale")}</span>
-        </p>
-      ) : null}
+      {result.stale ? <StaleNotice /> : null}
 
-      {failed ? (
-        <div
-          role="alert"
-          className="flex flex-wrap items-center gap-3 rounded-lg border border-down/40 bg-surface-2 px-4 py-2.5 text-sm text-fg"
-        >
-          <AlertIcon className="text-down" />
-          <span className="flex-1">{t("pollError")}</span>
-          <Button variant="secondary" size="sm" loading={refreshing} onClick={retry}>
-            {t("retry")}
-          </Button>
-        </div>
-      ) : null}
+      {failed ? <PollErrorNotice refreshing={refreshing} onRetry={retry} /> : null}
 
       <div className="flex flex-col gap-3 md:flex-row md:items-end">
         <SearchInput

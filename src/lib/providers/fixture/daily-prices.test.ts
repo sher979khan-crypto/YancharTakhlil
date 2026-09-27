@@ -101,6 +101,59 @@ describe("generateDailyPrices", () => {
   });
 });
 
+describe("generateDailyPrices with known 7d / 30d changes", () => {
+  const ratio = (a = 0, b = 1) => a / b;
+  const cases = [
+    { change7dPct: -7.2, change30dPct: 6.12 },
+    { change7dPct: 11.2, change30dPct: -18.4 },
+    { change7dPct: 0.4, change30dPct: 0.01 },
+  ];
+
+  it.each(cases)("agrees with 7d $change7dPct% and 30d $change30dPct%", (changes) => {
+    for (const base of [bitcoin, micro]) {
+      const coin = { ...base, ...changes };
+      const long = generateDailyPrices(coin, 90, SEED_DATE);
+      const month = generateDailyPrices(coin, 30, SEED_DATE);
+      const week = generateDailyPrices(coin, 7, SEED_DATE);
+      // end / start of each chart equals 1 + change, within 0.5%.
+      expect(
+        Math.abs(
+          ratio(month.at(-1)?.closeUsd, month[0]?.closeUsd) / (1 + changes.change30dPct / 100) - 1,
+        ),
+      ).toBeLessThan(0.005);
+      expect(
+        Math.abs(
+          ratio(week.at(-1)?.closeUsd, week[0]?.closeUsd) / (1 + changes.change7dPct / 100) - 1,
+        ),
+      ).toBeLessThan(0.005);
+      // Still exact tails, still ending at the current price.
+      expect(month).toEqual(long.slice(-30));
+      expect(week).toEqual(long.slice(-7));
+      expect(week.at(-1)?.closeUsd).toBe(coin.priceUsd);
+    }
+  });
+
+  it("uses only the 7d anchor when the 30d change is unknown, and vice versa", () => {
+    const only7 = { ...bitcoin, change7dPct: 5, change30dPct: null };
+    const week = generateDailyPrices(only7, 7, SEED_DATE);
+    expect(Math.abs(ratio(week.at(-1)?.closeUsd, week[0]?.closeUsd) / 1.05 - 1)).toBeLessThan(
+      0.005,
+    );
+
+    const only30 = { ...bitcoin, change7dPct: null, change30dPct: -12 };
+    const month = generateDailyPrices(only30, 30, SEED_DATE);
+    expect(Math.abs(ratio(month.at(-1)?.closeUsd, month[0]?.closeUsd) / 0.88 - 1)).toBeLessThan(
+      0.005,
+    );
+  });
+
+  it("matches the untilted walk when no change is known", () => {
+    const plain = generateDailyPrices(bitcoin, 90, SEED_DATE);
+    const nulls = { ...bitcoin, change7dPct: null, change30dPct: null };
+    expect(generateDailyPrices(nulls, 90, SEED_DATE)).toEqual(plain);
+  });
+});
+
 describe("dailyVolatility", () => {
   it("grows as market cap shrinks, within 2%..8%", () => {
     expect(dailyVolatility(2e12)).toBe(0.02);

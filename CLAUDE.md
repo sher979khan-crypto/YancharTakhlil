@@ -27,7 +27,11 @@
   must be registered in cn.ts when added.
 - Data layer (Step 5): zod 4.6.5 (v4 API, `import * as z from "zod"`) and server-only 0.0.1. In Vitest,
   server-only is aliased to the package's own empty.js (vitest.config.ts), as the Next.js Jest guide does.
-- Planned (added only in their own steps): lightweight-charts, Playwright.
+- Charts (Step 10): lightweight-charts 5.2.1 (Apache-2.0, exact pin; v5 API createChart + addSeries(AreaSeries)),
+  loaded only by the coin page's PriceChart via dynamic import. License rule: keep layout.attributionLogo on
+  and show the NOTICE text + https://www.tradingview.com/ link on the Disclaimer page
+  (src/config/third-party-notices.ts; the npm package ships no NOTICE, so the text is from the v5.2.1 tag).
+- Planned (added only in their own steps): Playwright.
 - Before adding ANY dependency: check its official docs and npm for the current version and compatibility
   with Next 16 / React / Tailwind 4, and record it here.
 
@@ -49,14 +53,21 @@ src/
                               site-header, site-footer, skip-link, brand, locale-switcher)
   components/features/markets/ MarketsExplorer (client: search, tabs, sort, polling), CoinsTable (md+),
                               CoinCards (< md), UpdatedAgo (client-only relative time), useCoinsPolling
+                              (= usePolling(fetchCoins)), market-status (SourceBadge, StaleNotice,
+                              PollErrorNotice; shared with the coin header)
+  components/features/coin-detail/ CoinBreadcrumb, CoinHeader (client: polls /api/v1/coins/{id}),
+                              PriceChart (client: lightweight-charts, 7/30/90D), AnalystPlaceholder,
+                              CoinStats (server, solid cards)
   components/features/home/   HomeLive (client: ONE useCoinsPolling feeds TickerTape + TopMovers; the
                               server-rendered MarketPulse is passed in as children), TickerTape (CSS
                               marquee), MarketPulse (server, 4 StatTiles), TopMovers, MarketDataUnavailable
   lib/domain/                 zod schemas, inferred types and pure business logic (market, errors,
-                              coin-filter, stablecoin-watch, market-list). No I/O.
+                              coin-filter, stablecoin-watch, market-list, coin-stats). No I/O.
   lib/api/                    /api/v1 contract (contract.ts: zod schemas, no server-only, shared with the
                               client), params.ts, responses.ts (ok/fail, server-only), cache-headers.ts,
-                              fetch-coins.ts (browser client for /api/v1/coins; imports contract.ts only)
+                              fetch-coins.ts (browser clients fetchCoins / fetchCoinDetail / fetchCoinChart;
+                              imports contract.ts only)
+  lib/hooks/                  use-polling.ts: usePolling(fetcher, initial), the one client polling loop
   lib/providers/              Data-access interfaces, get-market-data-provider.ts, the provider contract
                               suite, and implementations (fixture/, json/, memory/, coingecko/)
   lib/env/                    server-env.ts: zod-validated server env (server-only)
@@ -68,7 +79,7 @@ src/
   lib/navigation/             Nav items and the active-route matcher
   lib/seo/                    Canonical/hreflang builder and per-page metadata helper
   lib/utils/                  Small pure helpers (incl. loadOrNull: one failing data call degrades one section)
-  config/                     Non-secret config: site.ts, ai.ts, cache.ts, chat.ts
+  config/                     Non-secret config: site.ts, ai.ts, cache.ts, chat.ts, third-party-notices.ts
   data/                       Static JSON: excluded-coins.json, fixtures/market-snapshot.json,
                               knowledge/{en,ar,uz}.json
   messages/                   UI translations: en.json, ar.json, uz.json
@@ -113,7 +124,16 @@ Tests are colocated as *.test.ts(x).
   Relative times ("Updated 30s ago") render only after mount; the server renders a placeholder.
 - List links to coin pages use prefetch={false}: 99 visible links must not render 99 coin pages.
 - Coin pages use on-demand ISR. NEVER pre-render all coins at build time (99 coins x 3 locales would
-  exhaust the API quota).
+  exhaust the API quota). /[locale]/markets/[id]: revalidate = 120 (literal), dynamicParams = true,
+  generateStaticParams returns [] (the documented "all paths at runtime" ISR). The id is checked with
+  CoinIdParamSchema and getCoinDetail NOT_FOUND -> notFound() (HTTP 404); other errors -> error.tsx.
+  getCoinDetail is wrapped in React cache() so metadata and page share it; the initial 30-day chart
+  loads in parallel through loadOrNull (a chart failure never breaks the page).
+- Client polling goes through usePolling(fetcher, initial) (src/lib/hooks): one interval of
+  cacheTtl.clientPolling, paused while hidden, last good data kept on failure. One poll per page.
+- The coin chart: 30D comes from the server; 7D/90D are fetched from /api/v1/coins/{id}/chart once per
+  range and kept in component state. Colors come from CSS variables at runtime; no scroll/zoom
+  handling (the page keeps wheel/touch scrolling) and no animation.
 - Only coin IDs from the current top-99 list are accepted; everything else returns 404.
 - Cache TTLs (single source: src/config/cache.ts): markets 120s, coin detail 120s, daily history 30m,
   global market 10m, API 404 60s, AI analysis 15m per coin+locale; client polling every 60s.
@@ -165,7 +185,13 @@ Tests are colocated as *.test.ts(x).
 - Adding text: add the key to en.json, ar.json and uz.json in the same change; the parity test enforces it.
 - Number formatting is runtime-independent: Intl is only called with en-US; separators and compact suffixes
   come from src/lib/i18n/number-format-spec.ts. Never pass ar/uz locales to Intl in code that runs on the
-  client (hydration mismatch). Dates will follow the same rule when added.
+  client (hydration mismatch).
+- Dates never go through Intl (any locale): formatShortDate(isoDate, locale, { withYear }) in format.ts
+  uses our own month tables and CLDR-like patterns (src/lib/i18n/date-format-spec.ts): en "Sep 27, 2026",
+  ar "27 سبتمبر 2026", uz "27-sen, 2026". The date part of the ISO string is used as written (UTC).
+  In the LTR chart, Arabic dates are wrapped in <bdi dir="rtl"> (HTML) or an RTL isolate (canvas text).
+- Exception: third-party license notices (Disclaimer page, src/config/third-party-notices.ts) are shown
+  verbatim in English (lang="en"), because they are legal text, not UI copy.
 - No plural rules on the client: Intl.PluralRules has the same runtime gaps for ar/uz, so ICU plural
   messages are not used. Counts go in label form ("Results: {count}", "Natijalar: {count}"), with the
   number passed as a string.
@@ -352,3 +378,13 @@ Tests are colocated as *.test.ts(x).
   Cards: with the header pill and the hero's GlassPanel, two blurred cards made 4 visible blur layers at
   1440px. Measured max after the change: 2. Rows use a stretched link (the coin name) for a 40px+ target.
 - 2026-09-27: formatPercentUnsigned (1 fraction digit, never signed) for shares such as BTC/ETH dominance.
+- 2026-09-27: Step 10. Coin page /[locale]/markets/[id]: on-demand ISR (revalidate 120, generateStaticParams
+  []), 404 for malformed / non-top-99 ids (no upstream call for them). Header price polls
+  /api/v1/coins/{id}; the stats grid is server-rendered from the ISR snapshot (at most 120 s old).
+  AI Analyst is a placeholder card (glass surface, no blur: max 2 blur layers on the page).
+- 2026-09-27: lightweight-charts 5.2.1 for the price chart (dynamic import, ~53 KB gzip chunk on the coin
+  page only). TradingView attribution logo kept; NOTICE + link on the Disclaimer page.
+- 2026-09-27: Fixture daily series are tilted in log space so the 7-day chart starts at
+  price / (1 + change7d) and the 30-day chart at price / (1 + change30d) (piecewise linear by day, flat
+  before day 29). Both anchors and the tail property (7 ⊂ 30 ⊂ 90) hold exactly.
+- 2026-09-27: Exclusions: CoinGecko id "united-stables" added to "ids" (not the symbol "u").

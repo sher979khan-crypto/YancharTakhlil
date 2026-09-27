@@ -1,4 +1,5 @@
 import type { Locale } from "./config";
+import { dateFormatSpec } from "./date-format-spec";
 import { numberFormatSpec, type CompactUnit, type NumberFormatSpec } from "./number-format-spec";
 
 // Intl is only ever called with en-US: every browser and Node build ships its data, so server
@@ -105,4 +106,42 @@ export function formatCompactCurrency(value: number, locale: Locale): string {
     notation: "compact",
     maximumSignificantDigits: 3,
   });
+}
+
+/** A compact count without a currency, e.g. a coin supply: "19.8M". */
+export function formatCompactNumber(value: number, locale: Locale): string {
+  return format(value, locale, { notation: "compact", maximumSignificantDigits: 3 });
+}
+
+const ISO_DATE_PREFIX = /^(\d{4})-(\d{2})-(\d{2})/;
+
+/**
+ * A short calendar date from an ISO date or date-time ("2026-09-27" or "2026-09-27T12:00:00Z"):
+ * "Sep 27" (en), "27 سبتمبر" (ar), "27-sen" (uz); with `withYear` the year is added. The date
+ * part is used as written (the API sends UTC). Never calls Intl, so server and client agree.
+ * An invalid date renders as "—".
+ */
+export function formatShortDate(
+  isoDate: string,
+  locale: Locale,
+  { withYear = false }: { withYear?: boolean } = {},
+): string {
+  const match = ISO_DATE_PREFIX.exec(isoDate);
+  const [, yearText = "", monthText = "", dayText = ""] = match ?? [];
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1;
+  const day = Number(dayText);
+  // Round-trip through UTC to reject impossible dates such as Feb 30.
+  const check = new Date(Date.UTC(year, monthIndex, day));
+  if (
+    !match ||
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== monthIndex ||
+    check.getUTCDate() !== day
+  ) {
+    return NOT_A_NUMBER;
+  }
+  const spec = dateFormatSpec[locale];
+  const month = spec.months[monthIndex] ?? "";
+  return withYear ? spec.dayMonthYear(day, month, year) : spec.dayMonth(day, month);
 }

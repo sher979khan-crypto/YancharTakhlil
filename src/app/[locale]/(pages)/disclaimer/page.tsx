@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { CrystalIcon } from "@/components/ui/icons";
+import { thirdPartyNotices } from "@/config/third-party-notices";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 const sections = [
@@ -49,6 +50,30 @@ export default function DisclaimerPage() {
             <p className="text-pretty text-fg-muted">{t(`sections.${key}.body`)}</p>
           </section>
         ))}
+        <section
+          aria-labelledby="third-party-notices"
+          className="flex flex-col gap-3 border-t border-glass-border pt-6"
+        >
+          <h2
+            id="third-party-notices"
+            className="flex items-center gap-2 font-display text-xl font-semibold text-fg"
+          >
+            <CrystalIcon className="text-base text-ice" />
+            {t("notices.title")}
+          </h2>
+          {thirdPartyNotices.map((notice) => (
+            // Legal text in English, as published (CLAUDE.md §9 exception).
+            <div key={notice.url} lang="en" dir="ltr" className="flex flex-col gap-1 text-sm">
+              <p className="whitespace-pre-line text-fg-muted">{notice.text}</p>
+              <a
+                href={notice.url}
+                className="self-start rounded-sm text-ice underline-offset-4 hover:underline"
+              >
+                {notice.url}
+              </a>
+            </div>
+          ))}
+        </section>
         <p className="border-t border-glass-border pt-6 text-sm text-fg-subtle">
           {t("lastUpdated")}
         </p>

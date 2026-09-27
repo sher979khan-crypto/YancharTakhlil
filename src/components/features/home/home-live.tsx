@@ -30,7 +30,7 @@ export function HomeLive({ initial, children }: HomeLiveProps) {
     <>
       <TickerTape coins={tickerCoins} locale={locale} />
       {children}
-      <TopMovers movers={movers} locale={locale} />
+      <TopMovers movers={movers} locale={locale} updatedAt={result.fetchedAt} />
     </>
   );
 }

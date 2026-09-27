@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 
 import { ChangeCell, coinHref } from "@/components/features/markets/coin-cells";
+import { UpdatedAgo } from "@/components/features/markets/updated-ago";
 import { CoinLogo } from "@/components/ui/coin-logo";
 import { glassSurfaceClassName } from "@/components/ui/glass";
 import { ArrowDownIcon, ArrowUpIcon, ChevronIcon } from "@/components/ui/icons";
@@ -20,10 +21,12 @@ type TopMoversProps = {
   /** From buildTopMovers; null when the top list failed to load. */
   movers: TopMoversData<Coin> | null;
   locale: Locale;
+  /** fetchedAt of the polled list the movers come from. */
+  updatedAt?: string;
 };
 
 /** Top 5 gainers and losers over 24h, side by side from md. */
-export function TopMovers({ movers, locale }: TopMoversProps) {
+export function TopMovers({ movers, locale, updatedAt }: TopMoversProps) {
   const t = useTranslations("Home.movers");
 
   return (
@@ -37,6 +40,11 @@ export function TopMovers({ movers, locale }: TopMoversProps) {
           <MoversCard kind="losers" coins={movers.losers} locale={locale} />
         </div>
       )}
+      {movers !== null && updatedAt ? (
+        <div className="flex justify-end">
+          <UpdatedAgo timestamp={updatedAt} />
+        </div>
+      ) : null}
     </section>
   );
 }

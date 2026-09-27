@@ -1,6 +1,12 @@
 import * as z from "zod";
 
-import { SPARKLINE_POINTS, type ChartRange, type Coin, type DailyPrice } from "@/lib/domain/market";
+import {
+  SPARKLINE_POINTS,
+  type ChartRange,
+  type Coin,
+  type CoinDetail,
+  type DailyPrice,
+} from "@/lib/domain/market";
 
 const DAY_MS = 86_400_000;
 /** Daily moves are capped at this many standard deviations so a sample chart never looks broken. */
@@ -8,7 +14,12 @@ const MAX_SIGMAS = 4;
 /** Spread of the daily volume around the current 24h volume (log scale). */
 const VOLUME_SIGMA = 0.35;
 
-type SeriesCoin = Pick<Coin, "id" | "priceUsd" | "marketCapUsd" | "volume24hUsd">;
+type SeriesCoin = Pick<Coin, "id" | "priceUsd" | "marketCapUsd" | "volume24hUsd"> &
+  Partial<Pick<CoinDetail, "change7dPct" | "change30dPct">>;
+
+/** Days before today of the first point of the 7- and 30-day charts. */
+const SEVEN_DAY_START = 6;
+const THIRTY_DAY_START = 29;
 
 /** FNV-1a, 32 bit: turns the seed string into a PRNG seed. */
 function hashString(value: string): number {
@@ -52,10 +63,48 @@ function roundSignificant(value: number): number {
   return Number(value.toPrecision(8));
 }
 
+/** Log-price offset that moves `close` to where a `changePct` move says it started. */
+function anchorOffset(close: number, priceUsd: number, changePct: number | null | undefined) {
+  if (changePct === null || changePct === undefined || changePct <= -100 || close <= 0) {
+    return null;
+  }
+  return Math.log(priceUsd / (1 + changePct / 100)) - Math.log(close);
+}
+
+/**
+ * Log-price tilt for each day (index = days ago): 0 today, linear in between the anchors, and
+ * flat before the oldest one. It depends only on the raw walk, never on the range, so shorter
+ * ranges stay the exact tail of longer ones.
+ */
+function tiltByDaysAgo(rawCloses: readonly number[], coin: SeriesCoin): number[] {
+  const anchors: [daysAgo: number, offset: number][] = [[0, 0]];
+  for (const [daysAgo, change] of [
+    [SEVEN_DAY_START, coin.change7dPct],
+    [THIRTY_DAY_START, coin.change30dPct],
+  ] as const) {
+    const offset = anchorOffset(rawCloses[daysAgo] ?? 0, coin.priceUsd, change);
+    if (offset !== null) anchors.push([daysAgo, offset]);
+  }
+  return rawCloses.map((_, daysAgo) => {
+    const next = anchors.findIndex(([anchorDay]) => anchorDay >= daysAgo);
+    const last = anchors[anchors.length - 1] ?? [0, 0];
+    if (next === -1) return last[1];
+    const [toDay, toOffset] = anchors[next] ?? last;
+    const [fromDay, fromOffset] = anchors[next - 1] ?? [toDay, toOffset];
+    if (toDay === fromDay) return toOffset;
+    return fromOffset + ((toOffset - fromOffset) * (daysAgo - fromDay)) / (toDay - fromDay);
+  });
+}
+
 /**
  * Sample daily closes that end exactly at the coin's current price on `seedDate` ("YYYY-MM-DD").
  * Deterministic: the seed is the coin id plus the date. The walk runs backwards from today, so a
  * shorter range is always the tail of a longer one and the 7/30/90-day charts agree.
+ *
+ * The random walk alone ignores the snapshot's percentages, so it is tilted in log space: the
+ * 7-day chart starts at price / (1 + change7d) and the 30-day chart at price / (1 + change30d)
+ * (each only when known), with a linear blend in between and a constant shift before day 29.
+ * Both anchors and the tail property hold exactly, because the tilt is a function of the day.
  */
 export function generateDailyPrices(
   coin: SeriesCoin,
@@ -68,22 +117,33 @@ export function generateDailyPrices(
   const random = createRandom(hashString(`${coin.id}|${seedDate}`));
   const sigma = dailyVolatility(coin.marketCapUsd);
   const endMs = Date.parse(`${seedDate}T00:00:00Z`);
+  // At least 30 days, so the 30-day anchor exists for the 7-day range too.
+  const days = Math.max(range, THIRTY_DAY_START + 1);
 
-  const points: DailyPrice[] = [];
+  const rawCloses: number[] = [];
+  const volumes: number[] = [];
   let close = coin.priceUsd;
   let volume = coin.volume24hUsd;
-  for (let daysAgo = 0; daysAgo < range; daysAgo++) {
-    points.push({
-      date: new Date(endMs - daysAgo * DAY_MS).toISOString().slice(0, 10),
-      closeUsd: roundSignificant(close),
-      volumeUsd: Math.round(volume),
-    });
+  for (let daysAgo = 0; daysAgo < days; daysAgo++) {
+    rawCloses.push(close);
+    volumes.push(volume);
     // Same number of draws per day, so the sequence does not depend on the range.
     const move = Math.max(-MAX_SIGMAS, Math.min(MAX_SIGMAS, normal(random))) * sigma;
     const volumeNoise = Math.max(-MAX_SIGMAS, Math.min(MAX_SIGMAS, normal(random)));
     // Log returns keep every price positive.
     close /= Math.exp(move);
     volume = coin.volume24hUsd * Math.exp(volumeNoise * VOLUME_SIGMA);
+  }
+
+  const tilt = tiltByDaysAgo(rawCloses, coin);
+  const points: DailyPrice[] = [];
+  for (let daysAgo = 0; daysAgo < range; daysAgo++) {
+    points.push({
+      date: new Date(endMs - daysAgo * DAY_MS).toISOString().slice(0, 10),
+      // The tilt is 0 today, so the last close stays exactly the current price.
+      closeUsd: roundSignificant((rawCloses[daysAgo] ?? 0) * Math.exp(tilt[daysAgo] ?? 0)),
+      volumeUsd: Math.round(volumes[daysAgo] ?? 0),
+    });
   }
   return points.reverse();
 }

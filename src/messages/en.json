@@ -110,6 +110,52 @@
       "hours": "Updated {n} h ago"
     }
   },
+  "CoinPage": {
+    "metaTitle": "{name} ({symbol}) price",
+    "metaDescription": "{name} ({symbol}) price today with a 7, 30 and 90-day chart, market cap, 24h volume, supply and all-time high.",
+    "breadcrumb": "Breadcrumb",
+    "rank": "Rank <n>#{rank}</n>",
+    "priceChanges": "Price change",
+    "change1h": "1h",
+    "change24h": "24h",
+    "change7d": "7d",
+    "change30d": "30d",
+    "marketCap": "Market cap",
+    "fdv": "Fully diluted valuation",
+    "volume24h": "24h volume",
+    "range24h": "24h range",
+    "low": "Low",
+    "high": "High",
+    "supply": "Supply",
+    "circulating": "Circulating",
+    "total": "Total",
+    "max": "Max",
+    "noMaxSupply": "No max supply",
+    "supplyOfMax": "{percent} of max supply in circulation",
+    "ath": "All-time high",
+    "atl": "All-time low",
+    "fromAth": "From ATH",
+    "fromAtl": "From ATL",
+    "date": "Date",
+    "chart": {
+      "title": "Price chart",
+      "range": "Chart range",
+      "ranges": {
+        "d7": "7D",
+        "d30": "30D",
+        "d90": "90D"
+      },
+      "limited": "Limited history: {count} days",
+      "error": "Could not load the chart.",
+      "retry": "Retry",
+      "summary": "{days}-day change: {change}, low {low}, high {high}"
+    },
+    "ai": {
+      "title": "AI Analyst",
+      "body": "Tahlilchi will analyze {name} with indicators computed from market data and explain its view: buy, hold or sell.",
+      "comingSoon": "Coming soon"
+    }
+  },
   "Disclaimer": {
     "metaTitle": "Disclaimer",
     "title": "Disclaimer",
@@ -140,7 +186,10 @@
         "body": "Mentioning a cryptocurrency is not a recommendation or endorsement."
       }
     },
-    "lastUpdated": "Last updated: 26 September 2026"
+    "lastUpdated": "Last updated: 26 September 2026",
+    "notices": {
+      "title": "Third-party notices"
+    }
   },
   "NotFound": {
     "title": "Page not found",

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-26",
+  "updatedAt": "2026-09-27",
   "ids": [
     "bfusd",
     "blackrock-usd-institutional-digital-liquidity-fund",
@@ -29,6 +29,7 @@
     "tether",
     "tether-gold",
     "true-usd",
+    "united-stables",
     "usd-coin",
     "usd1-wlfi",
     "usdd",

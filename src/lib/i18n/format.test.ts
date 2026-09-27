@@ -3,9 +3,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { locales, type Locale } from "./config";
 import {
   formatCompactCurrency,
+  formatCompactNumber,
   formatPercent,
   formatPercentUnsigned,
   formatPrice,
+  formatShortDate,
   NOT_A_NUMBER,
 } from "./format";
 
@@ -13,7 +15,13 @@ const ARABIC_INDIC_DIGITS = /[٠-٩۰-۹]/;
 const BIDI_CONTROLS = /[‎‏؜‪-‮⁦-⁩]/;
 const NBSP = " ";
 
-const formatters = [formatPrice, formatPercent, formatPercentUnsigned, formatCompactCurrency];
+const formatters = [
+  formatPrice,
+  formatPercent,
+  formatPercentUnsigned,
+  formatCompactCurrency,
+  formatCompactNumber,
+];
 
 describe("formatPrice", () => {
   it("uses 2 fraction digits for prices >= 1", () => {
@@ -108,6 +116,92 @@ describe("formatCompactCurrency", () => {
     // en-US has no unit above trillion, so 1e15 stays "1000T".
     expect(formatCompactCurrency(1e15, "en")).toBe("$1000T");
     expect(formatCompactCurrency(1e15, "uz")).toBe("$1000 trln");
+  });
+});
+
+describe("formatCompactNumber", () => {
+  it("abbreviates counts without a currency symbol", () => {
+    expect(formatCompactNumber(19_812_345, "en")).toBe("19.8M");
+    expect(formatCompactNumber(21_000_000, "ar")).toBe("21 مليون");
+    expect(formatCompactNumber(120_450_000.5, "uz")).toBe("120 mln");
+    expect(formatCompactNumber(1_234_567_890_123, "uz")).toBe("1,23 trln");
+    expect(formatCompactNumber(950, "en")).toBe("950");
+  });
+});
+
+describe("formatShortDate", () => {
+  it("formats day and month with our own month names", () => {
+    expect(formatShortDate("2026-09-27", "en")).toBe("Sep 27");
+    expect(formatShortDate("2026-09-27", "ar")).toBe("27 سبتمبر");
+    expect(formatShortDate("2026-09-27", "uz")).toBe("27-sen");
+  });
+
+  it("adds the year on request", () => {
+    expect(formatShortDate("2021-11-10T14:24:11.849Z", "en", { withYear: true })).toBe(
+      "Nov 10, 2021",
+    );
+    expect(formatShortDate("2021-11-10", "ar", { withYear: true })).toBe("10 نوفمبر 2021");
+    expect(formatShortDate("2021-11-10", "uz", { withYear: true })).toBe("10-noy, 2021");
+  });
+
+  it("covers every month in every locale", () => {
+    const en = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const ar = [
+      "يناير",
+      "فبراير",
+      "مارس",
+      "أبريل",
+      "مايو",
+      "يونيو",
+      "يوليو",
+      "أغسطس",
+      "سبتمبر",
+      "أكتوبر",
+      "نوفمبر",
+      "ديسمبر",
+    ];
+    const uz = [
+      "yan",
+      "fev",
+      "mar",
+      "apr",
+      "may",
+      "iyun",
+      "iyul",
+      "avg",
+      "sen",
+      "okt",
+      "noy",
+      "dek",
+    ];
+    en.forEach((name, i) => {
+      const iso = `2026-${String(i + 1).padStart(2, "0")}-01`;
+      expect(formatShortDate(iso, "en")).toBe(`${name} 1`);
+      expect(formatShortDate(iso, "ar")).toBe(`1 ${ar[i]}`);
+      expect(formatShortDate(iso, "uz")).toBe(`1-${uz[i]}`);
+    });
+  });
+
+  it("uses the date as written, whatever the time zone of the runtime", () => {
+    expect(formatShortDate("2026-01-01T23:59:59Z", "en")).toBe("Jan 1");
+    expect(formatShortDate("2025-12-31T00:00:00+05:00", "en")).toBe("Dec 31");
+  });
+
+  it("renders an em dash for malformed or impossible dates", () => {
+    for (const value of ["", "yesterday", "2026-9-27", "2026-02-30", "2026-13-01"]) {
+      for (const locale of locales) expect(formatShortDate(value, locale)).toBe(NOT_A_NUMBER);
+    }
+  });
+
+  it("never calls Intl.DateTimeFormat or toLocale*String", () => {
+    const dateTimeFormat = vi.spyOn(Intl, "DateTimeFormat");
+    const toLocaleDateString = vi.spyOn(Date.prototype, "toLocaleDateString");
+    const toLocaleString = vi.spyOn(Date.prototype, "toLocaleString");
+    for (const locale of locales) formatShortDate("2026-09-27", locale, { withYear: true });
+    expect(dateTimeFormat).not.toHaveBeenCalled();
+    expect(toLocaleDateString).not.toHaveBeenCalled();
+    expect(toLocaleString).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
   });
 });
 

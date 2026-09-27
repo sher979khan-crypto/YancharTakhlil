@@ -110,6 +110,52 @@
       "hours": "{n} soat oldin yangilandi"
     }
   },
+  "CoinPage": {
+    "metaTitle": "{name} ({symbol}) narxi",
+    "metaDescription": "{name} ({symbol}) bugungi narxi: 7, 30 va 90 kunlik grafik, kapitallashuv, 24 soatlik savdo hajmi, taklif va eng yuqori narx.",
+    "breadcrumb": "Navigatsiya yoʻli",
+    "rank": "Oʻrin <n>#{rank}</n>",
+    "priceChanges": "Narx oʻzgarishi",
+    "change1h": "1 soat",
+    "change24h": "24 soat",
+    "change7d": "7 kun",
+    "change30d": "30 kun",
+    "marketCap": "Kapitallashuv",
+    "fdv": "Toʻliq suyultirilgan qiymat",
+    "volume24h": "24 soatlik savdo hajmi",
+    "range24h": "24 soatlik oraliq",
+    "low": "Eng past",
+    "high": "Eng yuqori",
+    "supply": "Taklif",
+    "circulating": "Muomalada",
+    "total": "Jami",
+    "max": "Maksimal",
+    "noMaxSupply": "Maksimal taklif yoʻq",
+    "supplyOfMax": "Maksimal taklifning {percent} qismi muomalada",
+    "ath": "Eng yuqori narx",
+    "atl": "Eng past narx",
+    "fromAth": "Eng yuqoridan",
+    "fromAtl": "Eng pastdan",
+    "date": "Sana",
+    "chart": {
+      "title": "Narx grafigi",
+      "range": "Grafik oraligʻi",
+      "ranges": {
+        "d7": "7 kun",
+        "d30": "30 kun",
+        "d90": "90 kun"
+      },
+      "limited": "Cheklangan tarix: {count} kun",
+      "error": "Grafikni yuklab boʻlmadi.",
+      "retry": "Qayta urinish",
+      "summary": "{days} kunlik oʻzgarish: {change}, eng past {low}, eng yuqori {high}"
+    },
+    "ai": {
+      "title": "AI tahlilchi",
+      "body": "Tahlilchi {name} tangasini bozor maʼlumotlaridan hisoblangan indikatorlar asosida tahlil qiladi va fikrini tushuntiradi: sotib olish, ushlab turish yoki sotish.",
+      "comingSoon": "Tez orada"
+    }
+  },
   "Disclaimer": {
     "metaTitle": "Masʼuliyatdan voz kechish",
     "title": "Masʼuliyatdan voz kechish",
@@ -140,7 +186,10 @@
         "body": "Biror kriptovalyutaning tilga olinishi tavsiya yoki maʼqullash hisoblanmaydi."
       }
     },
-    "lastUpdated": "Soʻnggi yangilanish: 2026-yil 26-sentabr"
+    "lastUpdated": "Soʻnggi yangilanish: 2026-yil 26-sentabr",
+    "notices": {
+      "title": "Uchinchi tomon bildirishnomalari"
+    }
   },
   "NotFound": {
     "title": "Sahifa topilmadi",
