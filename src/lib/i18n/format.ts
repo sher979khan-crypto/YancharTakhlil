@@ -108,6 +108,18 @@ export function formatCompactCurrency(value: number, locale: Locale): string {
   });
 }
 
+/**
+ * A plain number with a fixed number of fraction digits and no grouping, e.g. an RSI of 63.42:
+ * "63.42" (en, ar), "63,42" (uz).
+ */
+export function formatDecimal(value: number, locale: Locale, fractionDigits: number): string {
+  return format(value, locale, {
+    useGrouping: false,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+}
+
 /** A compact count without a currency, e.g. a coin supply: "19.8M". */
 export function formatCompactNumber(value: number, locale: Locale): string {
   return format(value, locale, { notation: "compact", maximumSignificantDigits: 3 });

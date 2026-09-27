@@ -43,7 +43,8 @@
 ## 5. Folder structure
 src/
   app/                        Routes only; keep thin.
-    api/v1/                   Public read API (GET only): coins, coins/[id], coins/[id]/chart, global
+    api/v1/                   Public read API (GET only): coins, coins/[id], coins/[id]/chart, global,
+                              analyze (?id=&locale=, AI Analyst)
     [locale]/                 Root layout (shell), not-found, error, [...rest] catch-all (unknown URL -> 404)
     [locale]/(pages)/         All pages (route group, so the layout's title template applies to the
                               home page too). No route-level loading.tsx (see §6).
@@ -73,9 +74,15 @@ src/
   lib/providers/              Data-access interfaces, get-market-data-provider.ts, the provider contract
                               suite, and implementations (fixture/, json/, memory/, coingecko/)
   lib/env/                    server-env.ts: zod-validated server env (server-only)
-  lib/ai/core/                Shared OpenRouter client, guards (rate limit, budget, input limits)
+  lib/ai/core/                Shared by both agents (server-only): openrouter-client.ts (one chat completion,
+                              typed AiError), errors.ts (AiError, AiBusyError), guards.ts (per-IP + global
+                              daily limits, clientIpFromHeaders), cache.ts (in-process TTL cache),
+                              parse-json.ts (defensive JSON extraction), models.ts (model chain + env override)
   lib/ai/agents/assistant/    "Kotib" agent: prompt, config, tools
-  lib/ai/agents/analyst/      "Tahlilchi" agent: prompt, config, output schema
+  lib/ai/agents/analyst/      "Tahlilchi" agent: system-prompt.ts (v2), metrics.ts (METRIC_KEYS, LEVEL_KEYS;
+                              client-safe), display.ts, output-schema.ts (zod + JSON Schema), verify.ts
+                              (number/invalidation/stance checks), basic-analysis.ts (rule-based fallback),
+                              analyze-coin.ts (analyzeCoin: cache -> guards -> input -> model chain)
   lib/ai/analyst/             Analyst input (Step 11): analysis-input.ts (AnalysisInputSchema +
                               buildAnalysisInput, pure), collect-numbers.ts (every citable number, for
                               output verification), load-analysis-input.ts (server-only, the only I/O)
@@ -85,7 +92,8 @@ src/
   lib/navigation/             Nav items and the active-route matcher
   lib/seo/                    Canonical/hreflang builder and per-page metadata helper
   lib/utils/                  Small pure helpers (incl. loadOrNull: one failing data call degrades one section)
-  config/                     Non-secret config: site.ts, ai.ts, cache.ts, chat.ts, third-party-notices.ts
+  config/                     Non-secret config: site.ts, ai.ts (models, AI limits), cache.ts, chat.ts,
+                              third-party-notices.ts
   data/                       Static JSON: excluded-coins.json, fixtures/market-snapshot.json,
                               knowledge/{en,ar,uz}.json
   messages/                   UI translations: en.json, ar.json, uz.json
@@ -142,8 +150,17 @@ Tests are colocated as *.test.ts(x).
   range and kept in component state. Colors come from CSS variables at runtime; no scroll/zoom
   handling (the page keeps wheel/touch scrolling) and no animation.
 - Only coin IDs from the current top-99 list are accepted; everything else returns 404.
+- GET /api/v1/analyze?id=<coin id>&locale=<en|ar|uz> (a GET with query params so the CDN can cache it):
+  bad id/locale 400 INVALID_INPUT; NOT_FOUND 404; per-IP limit 429 AI_BUSY + Retry-After (no-store);
+  other errors map as above. "ai" and "basic" results are both 200 with
+  "public, max-age=0, s-maxage=900, stale-while-revalidate=300" (cacheTtl.aiAnalysis and
+  aiAnalysisStaleWhileRevalidate). The response meta repeats the result's data { source, fetchedAt, stale }.
+- AI results are also cached in-process per id+locale for 15 min (lib/ai/core/cache.ts: TTL only, never
+  stale; concurrent requests share one analysis; errors are not cached; basic results are cached too so a
+  failing model chain is not retried on every request). Best-effort per instance, like the stale cache.
 - Cache TTLs (single source: src/config/cache.ts): markets 120s, coin detail 120s, daily history 30m,
-  global market 10m, API 404 60s, AI analysis 15m per coin+locale; client polling every 60s.
+  global market 10m, API 404 60s, AI analysis 15m per coin+locale (CDN stale-while-revalidate 5m);
+  client polling every 60s.
 - API error shape: { "error": { "code": string, "message": string } }. Never expose stack traces or
   upstream error details to the client.
 
@@ -180,6 +197,32 @@ Tests are colocated as *.test.ts(x).
   FDV) 3 significant digits; ratios 4 decimals. Non-finite -> null, never -0.
 - collectNumbers(input) lists every finite number in AnalysisInput plus |x| of each negative one; any
   number in the LLM output that is not in this list is treated as invented (Step 12).
+- The AI writes numbers in its text, but the server verifies every one. System prompt: owner-approved v2,
+  verbatim in src/lib/ai/agents/analyst/system-prompt.ts (ANALYST_SYSTEM_PROMPT_V2, promptVersion
+  "analyst-v2", {language} = English | Arabic | Uzbek (Latin script); a hash test locks the text).
+  The model gets one user message: JSON { input, display, allowedMetrics, allowedLevels, language }.
+  display = every metric/level (+ price, ATH, cap, volume) pre-formatted through format.ts for the locale;
+  allowed lists drop keys whose value is null. Result `value` fields are always filled from display.
+- Model chain (src/config/ai.ts, free models only): qwen/qwen3.8-27b:free (jsonMode schema) ->
+  google/gemma-4-31b-it:free (object) -> nvidia/nemotron-3-super-120b-a12b:free (schema).
+  OPENROUTER_MODEL_ANALYST (comma-separated ids) replaces it; unknown ids get jsonMode "none".
+  One attempt per model, 12 s timeout each, 25 s budget for the whole request (input loading included; a
+  model is not started with < 3 s left). reasoning { enabled: false } is sent because reasoning tokens
+  count against max_tokens (900). 401/403/402 stop the chain (account-wide); 429/timeouts/5xx move on.
+- Validation chain per answer (any failure -> next model; one log line per attempt,
+  "[analyst] <model> <outcome> <latencyMs>ms <prompt>/<completion>", never prompts, answers, keys or IPs):
+  parse (strip <think>, code fences, text around the object) -> AnalystOutputSchema (enums, lengths, 2-4
+  reasons, 1-3 risks, metric/level keys from the allowed lists) -> numbers (every token in summary,
+  reasons, risks and invalidation must be in collectNumbers, a display string, the neutral set
+  {1,7,14,20,24,30,50,90,100} or the coin's name/symbol; either "." or "," decimal is accepted; any
+  non-Latin digit fails) -> invalidation side (BUY level < price, SELL > price) -> stance majority
+  (warning only).
+- Fallback: no key, no passing answer, or the time/daily budget spent -> kind "basic" (basic-analysis.ts,
+  "basic-v1"): trend/RSI 14/7d change rules, confidence always low, template keys (BASIC_TEMPLATE_KEYS in
+  contract.ts) instead of text, risks [], invalidation = nearest level on the required side (or null).
+- Guards (src/lib/ai/core/guards.ts, in memory, best-effort per instance, cache hits never count): per IP
+  3 uncached analyses/min and 20/UTC day (-> 429 AI_BUSY); global 45 LLM calls/UTC day (-> basic), under
+  the free tier's 50/day. IP = x-nf-client-connection-ip, then the first x-forwarded-for, else "unknown".
 - Model IDs are configured per agent in src/config/ai.ts (env override allowed). Never hard-code model
   IDs anywhere else.
 - The "Not financial advice" disclaimer is rendered by the UI on every AI answer. Never rely on the LLM
@@ -432,3 +475,10 @@ Tests are colocated as *.test.ts(x).
   spreadsheet). Distances from ATH/ATL are computed from the current price, not taken from upstream's
   athChangePct. loadAnalysisInput returns a MarketResult (source/stale), so fixture analyses can be
   labeled as demo data.
+- 2026-09-27: Step 12. AI Analyst API: GET /api/v1/analyze?id=&locale= (CDN s-maxage 900, swr 300) on top of
+  a shared OpenRouter core (built-in fetch, no SDK). Free model chain qwen3.8-27b -> gemma-4-31b-it ->
+  nemotron-3-super-120b-a12b with per-model JSON modes; the server verifies every number the model writes;
+  any failure falls back to a rule-based "basic" analysis with template keys. Only our per-IP limit
+  returns 429 AI_BUSY; OpenRouter 429s and the global daily budget degrade to basic. Guards and the AI
+  cache are in-memory per instance. reasoning is disabled (reasoning tokens count against max_tokens).
+  Netlify's x-nf-client-connection-ip is documented only in Netlify's support forum, not the docs.

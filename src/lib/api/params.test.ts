@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ApiInputError, parseChartRange, parseCoinId } from "./params";
+import { ApiInputError, parseChartRange, parseCoinId, parseLocale } from "./params";
 
 describe("parseCoinId", () => {
   it.each(["bitcoin", "usd-coin", "0x0", "a", "a".repeat(100)])("accepts %s", (id) => {
@@ -47,5 +47,17 @@ describe("parseChartRange", () => {
 
   it("never echoes the input in the message", () => {
     expect(() => range("range=<script>")).toThrow("range is required and must be one of 7, 30, 90");
+  });
+});
+
+describe("parseLocale", () => {
+  it.each(["en", "ar", "uz"])("accepts %s", (locale) => {
+    expect(parseLocale(new URLSearchParams({ locale }))).toBe(locale);
+  });
+
+  it.each([null, "", "fr", "EN", " en", "en-US"])("rejects %j", (locale) => {
+    const params = new URLSearchParams(locale === null ? {} : { locale });
+    expect(() => parseLocale(params)).toThrow(ApiInputError);
+    expect(() => parseLocale(params)).toThrow("locale is required and must be one of en, ar, uz");
   });
 });

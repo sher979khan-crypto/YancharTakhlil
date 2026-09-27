@@ -6,8 +6,10 @@ export const cacheTtl = {
   globalMarket: 600,
   /** CDN lifetime of a /api/v1 404, so junk ids do not reach the provider on every request. */
   apiNotFound: 60,
-  /** Per coin + locale. */
+  /** Per coin + locale (CDN and the in-process AI cache). */
   aiAnalysis: 900,
+  /** CDN stale-while-revalidate for an analysis: shorter than the usual 5x ttl. */
+  aiAnalysisStaleWhileRevalidate: 300,
   /** How often client components poll /api/v1 for fresh prices. */
   clientPolling: 60,
 } as const;

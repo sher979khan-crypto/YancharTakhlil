@@ -4,6 +4,24 @@ import * as z from "zod";
 
 const optionalValue = z.string().min(1).optional();
 
+/** An OpenRouter model id such as "vendor/model-name:free". */
+const ModelIdSchema = z.string().regex(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:-]*$/i);
+
+/**
+ * "a/b:free, c/d" -> ["a/b:free", "c/d"]: the model chain in order. Blank items are dropped;
+ * one malformed id makes the whole variable invalid (and it falls back to the config chain).
+ */
+const modelListValue = z
+  .string()
+  .transform((value) =>
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0),
+  )
+  .pipe(z.array(ModelIdSchema).min(1))
+  .optional();
+
 export const ServerEnvSchema = z.object({
   MARKET_DATA_PROVIDER: z.enum(["auto", "fixture", "coingecko"]).default("auto"),
   COINGECKO_API_KEY: optionalValue,
@@ -16,7 +34,8 @@ export const ServerEnvSchema = z.object({
   OPENROUTER_API_KEY_ASSISTANT: optionalValue,
   OPENROUTER_API_KEY_ANALYST: optionalValue,
   OPENROUTER_MODEL_ASSISTANT: optionalValue,
-  OPENROUTER_MODEL_ANALYST: optionalValue,
+  /** Comma-separated model chain; replaces the one in src/config/ai.ts. */
+  OPENROUTER_MODEL_ANALYST: modelListValue,
 });
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
 export type ServerEnvKey = keyof ServerEnv;

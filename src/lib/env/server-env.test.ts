@@ -35,7 +35,7 @@ describe("parseServerEnv", () => {
       OPENROUTER_API_KEY_ASSISTANT: "assistant-key",
       OPENROUTER_API_KEY_ANALYST: "analyst-key",
       OPENROUTER_MODEL_ASSISTANT: "vendor/model-a",
-      OPENROUTER_MODEL_ANALYST: "vendor/model-b",
+      OPENROUTER_MODEL_ANALYST: " vendor/model-b ",
     });
     expect(invalid).toEqual([]);
     expect(env).toEqual({
@@ -45,7 +45,7 @@ describe("parseServerEnv", () => {
       OPENROUTER_API_KEY_ASSISTANT: "assistant-key",
       OPENROUTER_API_KEY_ANALYST: "analyst-key",
       OPENROUTER_MODEL_ASSISTANT: "vendor/model-a",
-      OPENROUTER_MODEL_ANALYST: "vendor/model-b",
+      OPENROUTER_MODEL_ANALYST: ["vendor/model-b"],
     });
   });
 
@@ -70,6 +70,26 @@ describe("parseServerEnv", () => {
       COINGECKO_API_KEY: "valid-key",
     });
   });
+
+  it("reads the analyst model chain as a comma-separated list", () => {
+    const { env, invalid } = parseServerEnv({
+      OPENROUTER_MODEL_ANALYST: " qwen/qwen3.8-27b:free, ,google/gemma-4-31b-it:free ",
+    });
+    expect(invalid).toEqual([]);
+    expect(env.OPENROUTER_MODEL_ANALYST).toEqual([
+      "qwen/qwen3.8-27b:free",
+      "google/gemma-4-31b-it:free",
+    ]);
+  });
+
+  it.each([",", "no-slash", "a/b, bad id", "a/b;rm -rf"])(
+    "rejects the analyst model list %j as a whole",
+    (value) => {
+      const { env, invalid } = parseServerEnv({ OPENROUTER_MODEL_ANALYST: value });
+      expect(invalid).toEqual(["OPENROUTER_MODEL_ANALYST"]);
+      expect(env.OPENROUTER_MODEL_ANALYST).toBeUndefined();
+    },
+  );
 
   it("ignores unrelated variables", () => {
     expect(parseServerEnv({ PATH: "/usr/bin", NODE_ENV: "test" }).env).toEqual(DEFAULTS);

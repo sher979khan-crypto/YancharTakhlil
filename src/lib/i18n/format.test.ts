@@ -4,6 +4,7 @@ import { locales, type Locale } from "./config";
 import {
   formatCompactCurrency,
   formatCompactNumber,
+  formatDecimal,
   formatPercent,
   formatPercentUnsigned,
   formatPrice,
@@ -22,6 +23,20 @@ const formatters = [
   formatCompactCurrency,
   formatCompactNumber,
 ];
+
+describe("formatDecimal", () => {
+  it("keeps the given fraction digits with the locale's decimal separator", () => {
+    expect(formatDecimal(63.4, "en", 2)).toBe("63.40");
+    expect(formatDecimal(63.4, "ar", 2)).toBe("63.40");
+    expect(formatDecimal(63.4, "uz", 2)).toBe("63,40");
+  });
+
+  it("never groups and renders non-finite values as a dash", () => {
+    expect(formatDecimal(12345.678, "en", 1)).toBe("12345.7");
+    expect(formatDecimal(-0.5, "uz", 2)).toBe("-0,50");
+    expect(formatDecimal(Number.NaN, "en", 2)).toBe(NOT_A_NUMBER);
+  });
+});
 
 describe("formatPrice", () => {
   it("uses 2 fraction digits for prices >= 1", () => {

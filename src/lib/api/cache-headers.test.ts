@@ -14,8 +14,15 @@ describe("successCacheControl", () => {
     );
   });
 
+  it("takes an explicit stale-while-revalidate (AI analysis)", () => {
+    expect(successCacheControl(cacheTtl.aiAnalysis, cacheTtl.aiAnalysisStaleWhileRevalidate)).toBe(
+      "public, max-age=0, s-maxage=900, stale-while-revalidate=300",
+    );
+  });
+
   it.each([0, -1, 1.5, Number.NaN])("rejects ttl %s", (ttl) => {
     expect(() => successCacheControl(ttl)).toThrow(RangeError);
+    expect(() => successCacheControl(60, ttl)).toThrow(RangeError);
   });
 });
 

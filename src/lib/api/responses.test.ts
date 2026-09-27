@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AiBusyError } from "@/lib/ai/core/errors";
 import { MarketDataError, type MarketDataErrorCode } from "@/lib/domain/errors";
 
 import { ApiErrorSchema, apiSuccessSchema } from "./contract";
@@ -43,6 +44,19 @@ describe("ok", () => {
   });
 });
 
+describe("ok with an explicit stale-while-revalidate", () => {
+  it("passes it to the Cache-Control header", () => {
+    const response = ok(
+      { data: 1, source: "coingecko", fetchedAt: "2026-09-26T12:00:00Z", stale: false },
+      900,
+      300,
+    );
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=0, s-maxage=900, stale-while-revalidate=300",
+    );
+  });
+});
+
 describe("fail", () => {
   it.each<[MarketDataErrorCode, number, string]>([
     ["NOT_FOUND", 404, "NOT_FOUND"],
@@ -68,9 +82,20 @@ describe("fail", () => {
     expect(fail(new ApiInputError("x")).headers.get("cache-control")).toBe("no-store");
   });
 
-  it("sets Retry-After only for RATE_LIMITED", () => {
+  it("sets Retry-After only for RATE_LIMITED and AI_BUSY", () => {
     expect(fail(new MarketDataError("RATE_LIMITED", "x")).headers.get("retry-after")).toBe("30");
     expect(fail(new MarketDataError("UPSTREAM", "x")).headers.get("retry-after")).toBeNull();
+  });
+
+  it("maps AiBusyError to 429 AI_BUSY with its Retry-After, uncached and unlogged", async () => {
+    const response = fail(new AiBusyError(41.2));
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("42");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await errorBody(response)).toEqual({
+      error: { code: "AI_BUSY", message: "Too many analysis requests, please try again later" },
+    });
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it("maps invalid input to 400 with its own message, without logging", async () => {
