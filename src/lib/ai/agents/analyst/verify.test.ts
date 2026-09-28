@@ -95,9 +95,40 @@ describe("findInventedNumbers (en)", () => {
     ["a flipped sign", "The 24h change was -1.84%.", ["-1.84"]],
     ["a date", "Since 2025 the trend is up.", ["2025"]],
     ["a wrong compact size", "Market cap is $2T.", ["$2T"]],
-    ["a guidance number", "RSI between 40 and 70 supports this.", ["40", "70"]],
+    ["a range with an invented end", "RSI in the 45-75 zone.", ["45", "75"]],
+    ["a flipped sign that is not a range", "RSI 51.68 -1.84% today.", ["-1.84"]],
   ])("rejects %s", (_label, text, tokens) => {
     expect(invented(text, "en")).toEqual(tokens);
+  });
+
+  it.each([
+    "RSI below 30 is oversold and above 70 overbought.",
+    "RSI between 40 and 60 is neutral; 80 is extreme.",
+    "RSI in the 40-70 range.",
+    "RSI in the 40–70 range.",
+    "RSI from 30 to 70.",
+    "RSI in the 40 - 70 range.",
+    "RSI in the 40%-70% band.",
+  ])("accepts the RSI reference thresholds and ranges of them: %j", (text) => {
+    expect(invented(text, "en")).toEqual([]);
+  });
+
+  it("reads the second number of a range as positive", () => {
+    expect(
+      ["40-70", "40–70", "40 - 70", "40%-70%", "30 to 70"].map((text) =>
+        extractNumberTokens(text).map((token) => token.negative),
+      ),
+    ).toEqual([
+      [false, false],
+      [false, false],
+      [false, false],
+      [false, false],
+      [false, false],
+    ]);
+    expect(extractNumberTokens("51.68 -1.84").map((token) => token.negative)).toEqual([
+      false,
+      true,
+    ]);
   });
 
   it("rejects numbers written in non-Latin digits", () => {

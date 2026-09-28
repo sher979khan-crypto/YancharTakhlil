@@ -47,6 +47,42 @@ describe("isWrittenIn", () => {
     expect(isWrittenIn([text], "en")).toBe(true);
   });
 
+  it.each([
+    ["en", "The trend is up and the price is above the 限制 average."],
+    ["uz", "Narx oʻrtachadan yuqori va 可能存在 xavf bor."],
+    ["ar", "الاتجاه صاعد والسعر أعلى من المتوسط 可能存在 مخاطر."],
+    ["ar", "الاتجاه صاعد والسعر أعلى من المتوسط ひらがな."],
+    ["ar", "الاتجاه صاعد والسعر أعلى من المتوسط カタカナ."],
+    ["uz", "Narx oʻrtachadan yuqori va 한국어 xavf bor."],
+  ] as const)("rejects any CJK character in %s: %j", (locale, text) => {
+    expect(isWrittenIn([text], locale)).toBe(false);
+  });
+
+  it("keeps Latin words in Arabic at or under 15% of all words", () => {
+    // 10 words, 1 Latin word ("trading") = 10%.
+    const oneIn10 = "الاتجاه صاعد والسعر أعلى من المتوسط مع زخم trading جيد";
+    expect(languageSignals(oneIn10)).toMatchObject({ words: 10, latinWords: 1 });
+    expect(isWrittenIn([oneIn10], "ar")).toBe(true);
+    // 10 words, 2 Latin words = 20%: still > 60% Arabic letters, but rejected.
+    const twoIn10 = "الاتجاه صاعد والسعر أعلى من المتوسط مع positioning trading جيد";
+    expect(languageSignals(twoIn10).arabicShare).toBeGreaterThan(0.6);
+    expect(isWrittenIn([twoIn10], "ar")).toBe(false);
+  });
+
+  it("does not count tickers, indicator names or the coin's own words as Latin words in Arabic", () => {
+    const text =
+      "يشير مؤشر RSI ومتوسط SMA وخط sma50 إلى زخم متوازن، والسعر بعيد عن ATH وأعلى من ATL، " +
+      "ويتحرك مع BTC و ETH مقابل USD، وعملة Sky برمز SKY مستقرة نسبيًا في السوق الحالية";
+    const sky = { name: "Sky", symbol: "sky" };
+    expect(languageSignals(text, sky).latinWords).toBe(0);
+    expect(isWrittenIn([text], "ar", sky)).toBe(true);
+    // Without the coin, "Sky" and "SKY" are ordinary Latin words ...
+    expect(languageSignals(text).latinWords).toBe(2);
+    // ... and a multi-word name is allowed word by word.
+    const shiba = { name: "Shiba Inu", symbol: "shib" };
+    expect(languageSignals("عملة Shiba Inu أو SHIB", shiba).latinWords).toBe(0);
+  });
+
   it("rejects text without letters", () => {
     expect(isWrittenIn(["+1.55% $95,762.90"], "en")).toBe(false);
     expect(isWrittenIn([], "ar")).toBe(false);

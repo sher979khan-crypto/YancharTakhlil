@@ -21,14 +21,15 @@ export const aiConfig = {
   },
   analyst: {
     /**
-     * Set from the Step 14 evaluation (2026-09-28, `pnpm eval:analyst`: 30 calls, bitcoin + sky,
-     * en/ar/uz, one attempt each). Rule: >= 50% valid overall and >= 1 valid per locale, ordered
-     * by valid rate then median latency, at most 3. Only dots-3 qualified, so the chain is the best
-     * available, not a reliable one (owner decides on a paid fallback):
-     * - dots-3-note-preview: 6/6 valid, median 10.8 s, p90 12.8 s, no 429s.
-     * - nemotron-3-super: 2/6 valid (0/2 uz), median 7.6 s, p90 10.4 s; the other 4 failed the
-     *   number check (it cites thresholds such as "40-70" that are not in the input).
-     * Dropped: qwen3.8-27b (5x 429, 1 timeout), gemma-4-31b-it and gemma-4-26b-a4b-it (6/6 429).
+     * Set from the Step 14.1 re-evaluation (2026-09-28, `pnpm eval:analyst`: 12 calls, bitcoin +
+     * sky, en/ar/uz, one attempt each, with the Step 14.1 validation rules). Rule (Step 14): >= 50%
+     * valid overall and >= 1 valid per locale, ordered by valid rate then median latency, at most 3.
+     * Both qualified:
+     * - dots-3-note-preview: 6/6 valid (2/2/2), median 13.4 s, p90 14.6 s, no 429s.
+     * - nemotron-3-super: 5/6 valid (1/2/2; 1 UPSTREAM error), median 10.3 s, p90 13.0 s.
+     * Step 14 (old rules) had dots-3 6/6 and nemotron 2/6: its 4 rejections were RSI thresholds
+     * such as "40-70", now neutral numbers. Dropped in Step 14: qwen3.8-27b (5x 429, 1 timeout),
+     * gemma-4-31b-it and gemma-4-26b-a4b-it (6/6 429).
      */
     models: [
       // supported_parameters: response_format and structured_outputs
@@ -45,10 +46,10 @@ export const aiConfig = {
      */
     disableReasoning: true,
     /**
-     * Step 14 rule: max(12 s, the chain's worst p90 + 2 s), capped at 15 s. dots-3's p90 was
-     * 12 828 ms. With the 25 s budget the second model still gets about 10 s (nemotron p90 10.4 s).
+     * Step 14.1 (owner): the 15 s cap of the Step 14 rule, max(12 s, the chain's worst p90 + 2 s).
+     * With the 25 s budget the second model still gets about 10 s.
      */
-    perModelTimeoutMs: 14_828,
+    perModelTimeoutMs: 15_000,
     /** Netlify functions have a hard time limit; stay well under it. */
     totalBudgetMs: 25_000,
     /** A model is not started with less time than this left in the budget. */
@@ -63,14 +64,13 @@ export const aiConfig = {
   /**
    * Candidates for the manual evaluation (scripts/eval-analyst.ts, `pnpm eval:analyst`); never
    * used by the app. jsonMode "schema" where supported_parameters lists structured_outputs,
-   * otherwise "object" (/api/v1/models, re-checked 2026-09-28).
+   * otherwise "object" (/api/v1/models, re-checked 2026-09-28). Step 14.1 re-evaluated only the
+   * two models that answered in Step 14; qwen3.8-27b (schema), gemma-4-31b-it and
+   * gemma-4-26b-a4b-it (object) were dropped after 17 of 18 calls returned 429.
    */
   analystEvalCandidates: [
-    { id: "qwen/qwen3.8-27b:free", jsonMode: "schema" },
-    { id: "google/gemma-4-31b-it:free", jsonMode: "object" },
     { id: "nvidia/nemotron-3-super-120b-a12b:free", jsonMode: "schema" },
     { id: "dots-studio/dots-3-note-preview:free", jsonMode: "schema" },
-    { id: "google/gemma-4-26b-a4b-it:free", jsonMode: "object" },
   ] satisfies readonly AiModelConfig[],
   guards: {
     perIpPerMinute: 3,

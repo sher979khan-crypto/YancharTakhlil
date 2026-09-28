@@ -47,8 +47,11 @@ import {
   type EvalRecord,
 } from "./eval-analyst-stats";
 
-/** Hard cap for the whole run, 429s and timeouts included (free tier: 50/day per account). */
-const CALL_BUDGET = 30;
+/**
+ * Hard cap for the whole run, 429s and timeouts included (free tier: 50/day per account; Step 14
+ * spent 30 of them, so Step 14.1 has 12: 2 models x 2 coins x 3 locales).
+ */
+const CALL_BUDGET = 12;
 /** Free models allow 20 requests/min; one call per 3.5 s stays under it. */
 const MIN_GAP_MS = 3_500;
 /** The Step 14 timeout cap: a slower answer could not be used by the chain anyway. */
@@ -198,7 +201,11 @@ test("evaluate the analyst's free models", async () => {
   const reportPath = join(outDir, `analyst-eval-${stamp}.md`);
   const jsonPath = join(outDir, `analyst-eval-${stamp}.json`);
   writeFileSync(reportPath, renderReport(meta, records, stats, decision));
-  writeFileSync(jsonPath, `${JSON.stringify({ meta, stats, decision, records }, null, 2)}\n`);
+  // The inputs are saved so the stored answers can be re-validated offline after a rule change.
+  writeFileSync(
+    jsonPath,
+    `${JSON.stringify({ meta, stats, decision, inputs, records }, null, 2)}\n`,
+  );
 
   console.info(`\n${renderSummaryTable(stats)}\n`);
   console.info(`[eval] calls: ${calls}/${CALL_BUDGET}${stoppedEarly ? ` (${stoppedEarly})` : ""}`);

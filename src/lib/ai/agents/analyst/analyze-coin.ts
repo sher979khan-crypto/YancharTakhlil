@@ -25,6 +25,7 @@ import { NOT_A_NUMBER } from "@/lib/i18n/format";
 import { BASIC_RULES_VERSION, buildBasicAnalysis } from "./basic-analysis";
 import { buildDisplay, type AnalysisDisplay } from "./display";
 import { availableLevels, availableMetrics, type DisplayKey } from "./metrics";
+import { normalizeUzbekOutput } from "./normalize-uzbek";
 import { AnalystOutputSchema, analystResponseFormat, type AnalystOutput } from "./output-schema";
 import { buildSystemPrompt, PROMPT_LANGUAGE } from "./system-prompt";
 import {
@@ -117,8 +118,8 @@ export function buildUserMessage(context: AttemptContext): string {
 }
 
 /**
- * Validation chain for one answer: JSON -> schema (+ allowed keys) -> language -> numbers ->
- * invalidation side.
+ * Validation chain for one answer: JSON -> schema (+ allowed keys) -> Uzbek apostrophes (uz) ->
+ * language -> numbers -> invalidation side. A passing uz answer is returned normalized.
  */
 export function checkAnswer(content: string, context: AttemptContext): Checked {
   const json = parseModelJson(content);
@@ -126,7 +127,7 @@ export function checkAnswer(content: string, context: AttemptContext): Checked {
 
   const parsed = AnalystOutputSchema.safeParse(json.value);
   if (!parsed.success) return { ok: false, outcome: "schema" };
-  const output = parsed.data;
+  const output = context.locale === "uz" ? normalizeUzbekOutput(parsed.data) : parsed.data;
   // The enums allow every key; this input may have nulls the model was told not to use.
   if (
     !output.reasons.every((reason) => context.allowedMetrics.has(reason.metric)) ||
@@ -135,7 +136,9 @@ export function checkAnswer(content: string, context: AttemptContext): Checked {
     return { ok: false, outcome: "schema" };
   }
 
-  if (!isWrittenIn(outputTexts(output), context.locale)) return { ok: false, outcome: "language" };
+  if (!isWrittenIn(outputTexts(output), context.locale, context.input.coin)) {
+    return { ok: false, outcome: "language" };
+  }
 
   const allowed = buildAllowedNumbers(context.input, context.display, context.locale);
   if (verifyOutputNumbers(output, allowed).length > 0) return { ok: false, outcome: "numbers" };

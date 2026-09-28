@@ -7,14 +7,35 @@ import type { Locale } from "@/lib/i18n/config";
  * English (or Russian, or Uzbek Cyrillic) whatever the prompt says, and a wrong-language answer
  * must go to the next model like any other invalid answer.
  *
- * - ar: at least 60% of the letters are Arabic script (Latin tickers and "RSI" are allowed).
+ * - any locale: no Han, Hiragana, Katakana or Hangul character (Step 14: free models leaked
+ *   Chinese words such as "限制" into Arabic answers).
+ * - ar: at least 60% of the letters are Arabic script, and Latin-script words ("trading",
+ *   "positioning") are at most 15% of all words; tickers and indicator names (ARABIC_LATIN_ALLOWED,
+ *   plus the coin's symbol and name words) do not count as Latin words.
  * - en / uz: at least 90% of the letters are Latin script (Uzbek must be the Latin alphabet),
  *   and the words decide between the two: Uzbek markers must outnumber English stopwords for uz,
  *   and the reverse for en.
  */
 
 export const MIN_ARABIC_LETTER_SHARE = 0.6;
+export const MAX_ARABIC_LATIN_WORD_SHARE = 0.15;
 export const MIN_LATIN_LETTER_SHARE = 0.9;
+
+/**
+ * Latin words an Arabic answer may use freely (compared case-insensitively). Words are letters
+ * only, so "SMA20" is read as "SMA"; the digit forms are listed as the owner specified them.
+ */
+export const ARABIC_LATIN_ALLOWED: ReadonlySet<string> = new Set([
+  "rsi",
+  "sma",
+  "sma20",
+  "sma50",
+  "ath",
+  "atl",
+  "btc",
+  "eth",
+  "usd",
+]);
 
 /**
  * Frequent Uzbek words of this domain that are not English words. "trend", "past" (Uzbek "low")
@@ -100,6 +121,7 @@ export const ENGLISH_STOPWORDS: ReadonlySet<string> = new Set([
 const LETTER = /[\p{Lu}\p{Ll}\p{Lt}\p{Lo}]/u;
 const ARABIC = /\p{Script=Arabic}/u;
 const LATIN = /\p{Script=Latin}/u;
+const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 // A word keeps its apostrophes, so "oʻrtacha" stays one word; look-alikes of ʻ are normalized.
 const WORD = /[\p{L}\p{M}ʻʼ'‘’`]+/gu;
 const APOSTROPHE_LIKE = /['‘’`]/g;
@@ -110,25 +132,48 @@ export type LanguageSignals = {
   letters: number;
   arabicShare: number;
   latinShare: number;
+  /** Han, Hiragana, Katakana or Hangul characters. */
+  cjkChars: number;
+  words: number;
+  /** Words with a Latin letter, minus the allowed ones (ARABIC_LATIN_ALLOWED + the coin's words). */
+  latinWords: number;
   uzbekMarkers: number;
   englishStopwords: number;
 };
 
-export function languageSignals(text: string): LanguageSignals {
+/** The coin the answer is about: its symbol and name words may appear in Latin in any locale. */
+export type LanguageCoin = { name: string; symbol: string };
+
+function allowedLatinWords(coin: LanguageCoin | undefined): ReadonlySet<string> {
+  if (!coin) return ARABIC_LATIN_ALLOWED;
+  const coinWords = [...`${coin.name} ${coin.symbol}`.matchAll(WORD)].map(([word]) =>
+    word.toLowerCase(),
+  );
+  return new Set([...ARABIC_LATIN_ALLOWED, ...coinWords]);
+}
+
+export function languageSignals(text: string, coin?: LanguageCoin): LanguageSignals {
   let letters = 0;
   let arabic = 0;
   let latin = 0;
+  let cjkChars = 0;
   for (const char of text) {
+    if (CJK.test(char)) cjkChars += 1;
     if (!LETTER.test(char)) continue;
     letters += 1;
     if (ARABIC.test(char)) arabic += 1;
     else if (LATIN.test(char)) latin += 1;
   }
 
+  const allowedLatin = allowedLatinWords(coin);
+  let words = 0;
+  let latinWords = 0;
   let uzbekMarkers = 0;
   let englishStopwords = 0;
   for (const [raw] of text.matchAll(WORD)) {
+    words += 1;
     const word = raw.toLowerCase().replace(APOSTROPHE_LIKE, "ʻ");
+    if (LATIN.test(word) && !allowedLatin.has(raw.toLowerCase())) latinWords += 1;
     if (ENGLISH_STOPWORDS.has(word)) englishStopwords += 1;
     else if (
       UZBEK_MARKER_WORDS.has(word) ||
@@ -145,16 +190,28 @@ export function languageSignals(text: string): LanguageSignals {
     letters,
     arabicShare: letters === 0 ? 0 : arabic / letters,
     latinShare: letters === 0 ? 0 : latin / letters,
+    cjkChars,
+    words,
+    latinWords,
     uzbekMarkers,
     englishStopwords,
   };
 }
 
 /** True when the texts, taken together, read as `locale`. */
-export function isWrittenIn(texts: readonly string[], locale: Locale): boolean {
-  const signals = languageSignals(texts.join("\n"));
-  if (signals.letters === 0) return false;
-  if (locale === "ar") return signals.arabicShare >= MIN_ARABIC_LETTER_SHARE;
+export function isWrittenIn(
+  texts: readonly string[],
+  locale: Locale,
+  coin?: LanguageCoin,
+): boolean {
+  const signals = languageSignals(texts.join("\n"), coin);
+  if (signals.letters === 0 || signals.cjkChars > 0) return false;
+  if (locale === "ar") {
+    return (
+      signals.arabicShare >= MIN_ARABIC_LETTER_SHARE &&
+      signals.latinWords <= MAX_ARABIC_LATIN_WORD_SHARE * signals.words
+    );
+  }
   if (signals.latinShare < MIN_LATIN_LETTER_SHARE) return false;
   return locale === "uz"
     ? signals.uzbekMarkers > signals.englishStopwords

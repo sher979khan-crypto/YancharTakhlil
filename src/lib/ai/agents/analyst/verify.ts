@@ -9,8 +9,13 @@ import type { AnalysisDisplay } from "./display";
 import { readLevel } from "./metrics";
 import type { AnalystOutput } from "./output-schema";
 
-/** Periods and bounds the text may name without them being data ("the 7-day change", "RSI 14"). */
-export const NEUTRAL_NUMBERS: readonly number[] = [1, 7, 14, 20, 24, 30, 50, 90, 100];
+/**
+ * Periods and bounds the text may name without them being data ("the 7-day change", "RSI 14"),
+ * and the RSI reference thresholds (30, 40, 60, 70, 80) that system prompt rule 7 names in words.
+ */
+export const NEUTRAL_NUMBERS: readonly number[] = [
+  1, 7, 14, 20, 24, 30, 40, 50, 60, 70, 80, 90, 100,
+];
 
 const SUFFIX_MULTIPLIERS: Readonly<Record<string, number>> = {
   K: 1e3,
@@ -42,17 +47,40 @@ const NON_LATIN_DIGIT = /(?![0-9])\p{Nd}/u;
 
 type NumberToken = { raw: string; negative: boolean; body: string; multiplier: number };
 
+/**
+ * What may sit between the first number of a range and a "-" that joins it to the second: an
+ * optional "%", then either nothing ("40%-70%") or spaces on both sides of the dash ("40 - 70").
+ * "40-70" and "40–70" never read as a minus (the "-" follows a digit; "–" is not a sign), and
+ * "40 to 70" has no sign at all. "51.68 -1.84%" (a space only before the dash) stays negative.
+ */
+const RANGE_GAP = /^%?(\s*)$/;
+
+function isRangeDash(text: string, previousEnd: number, match: RegExpExecArray): boolean {
+  const [raw, sign] = match;
+  if (sign !== "-") return false;
+  const gap = RANGE_GAP.exec(text.slice(previousEnd, match.index));
+  if (!gap) return false;
+  const spaceBefore = (gap[1] ?? "").length > 0;
+  const spaceAfter = /^-\s/.test(raw);
+  return spaceBefore === spaceAfter;
+}
+
 export function extractNumberTokens(text: string): NumberToken[] {
-  return [...text.matchAll(NUMBER_TOKEN)].map((match) => {
+  const tokens: NumberToken[] = [];
+  let previousEnd: number | null = null;
+  for (const match of text.matchAll(NUMBER_TOKEN)) {
     const [raw, sign, body = "", shortSuffix, wordSuffix] = match;
     const suffix = shortSuffix ?? wordSuffix;
-    return {
+    const rangeDash = previousEnd !== null && isRangeDash(text, previousEnd, match);
+    tokens.push({
       raw: raw.trim(),
-      negative: sign === "-" || sign === "−",
+      negative: !rangeDash && (sign === "-" || sign === "−"),
       body,
       multiplier: suffix ? (SUFFIX_MULTIPLIERS[suffix] ?? 1) : 1,
-    };
-  });
+    });
+    previousEnd = match.index + raw.length;
+  }
+  return tokens;
 }
 
 /** "." decimal with "," groups (en, ar) or "," decimal with "." groups (uz); spaces are groups. */

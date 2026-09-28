@@ -16,8 +16,13 @@ import type { ResponseFormat } from "@/lib/ai/core/openrouter-client";
 export const SUMMARY_MAX = 280;
 export const REASON_TEXT_MAX = 200;
 export const SENTENCE_MAX = 160;
+/**
+ * Owner rule (Step 14.1): a reason text or a risk must say something; the Step 14 evaluation had
+ * a reason that was only "Trend". The summary and the invalidation keep the minimum of 1.
+ */
+export const REASON_RISK_MIN = 20;
 
-const text = (max: number) => z.string().trim().min(1).max(max);
+const text = (max: number, min = 1) => z.string().trim().min(min).max(max);
 
 /** What the model must return. Extra keys are dropped; the JSON Schema below forbids them. */
 export const AnalystOutputSchema = z.object({
@@ -29,12 +34,12 @@ export const AnalystOutputSchema = z.object({
       z.object({
         metric: MetricKeySchema,
         stance: StanceSchema,
-        text: text(REASON_TEXT_MAX),
+        text: text(REASON_TEXT_MAX, REASON_RISK_MIN),
       }),
     )
     .min(2)
     .max(4),
-  risks: z.array(text(SENTENCE_MAX)).min(1).max(3),
+  risks: z.array(text(SENTENCE_MAX, REASON_RISK_MIN)).min(1).max(3),
   invalidation: z.object({
     metric: LevelKeySchema,
     text: text(SENTENCE_MAX),

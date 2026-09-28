@@ -170,6 +170,19 @@ describe("analyzeCoin: AI answers", () => {
     expect(user?.content.endsWith("\n\nRespond ONLY in Uzbek (Latin script).")).toBe(true);
   });
 
+  it("returns an Uzbek answer with ASCII apostrophes normalized to U+02BB / U+02BC", async () => {
+    const answer: AnalystOutput = {
+      ...VALID_UZ_ANSWER,
+      summary: "Ma'lumotlarga ko'ra, narx 50 kunlik o’rtachadan +1,55% yuqori.",
+    };
+    const { run } = setup({ replies: [{ content: json(answer) }] });
+    const result = await run("bitcoin", "uz");
+    expect(result).toMatchObject({
+      kind: "ai",
+      summary: "Maʼlumotlarga koʻra, narx 50 kunlik oʻrtachadan +1,55% yuqori.",
+    });
+  });
+
   it("parses an answer wrapped in a think block and a code fence", async () => {
     const content = "<think>hmm</think>\n```json\n" + json(VALID_EN_ANSWER) + "\n```";
     const { run } = setup({ replies: [{ content }] });

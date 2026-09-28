@@ -6,6 +6,7 @@ import {
   analystResponseFormat,
   AnalystOutputSchema,
   buildAnalystJsonSchema,
+  REASON_RISK_MIN,
   REASON_TEXT_MAX,
   SENTENCE_MAX,
   SUMMARY_MAX,
@@ -34,8 +35,27 @@ describe("AnalystOutputSchema", () => {
     ["a long risk", { risks: ["x".repeat(SENTENCE_MAX + 1)] }],
     ["an empty summary", { summary: "   " }],
     ["a missing invalidation", { invalidation: undefined }],
+    ["a one-word reason", { reasons: [{ ...reason, text: "Trend" }, reason] }],
+    ["a 19-character reason", { reasons: [{ ...reason, text: "x".repeat(19) }, reason] }],
+    [
+      "a reason padded to 20 with spaces",
+      { reasons: [{ ...reason, text: ` ${"x".repeat(18)} ` }, reason] },
+    ],
+    ["a 19-character risk", { risks: ["x".repeat(REASON_RISK_MIN - 1)] }],
   ])("rejects %s", (_label, patch) => {
     expect(AnalystOutputSchema.safeParse({ ...valid, ...patch }).success).toBe(false);
+  });
+
+  it("accepts a reason and a risk of exactly 20 characters and a short summary", () => {
+    const twenty = "x".repeat(REASON_RISK_MIN);
+    expect(
+      AnalystOutputSchema.safeParse({
+        ...valid,
+        summary: "Up.",
+        reasons: [{ ...reason, text: twenty }, reason],
+        risks: [twenty],
+      }).success,
+    ).toBe(true);
   });
 });
 
@@ -63,11 +83,16 @@ describe("buildAnalystJsonSchema", () => {
             properties: {
               metric: { enum: [...METRIC_KEYS] },
               stance: { enum: ["bullish", "bearish", "neutral"] },
-              text: { maxLength: REASON_TEXT_MAX },
+              text: { minLength: REASON_RISK_MIN, maxLength: REASON_TEXT_MAX },
             },
           },
         },
-        risks: { type: "array", minItems: 1, maxItems: 3, items: { maxLength: SENTENCE_MAX } },
+        risks: {
+          type: "array",
+          minItems: 1,
+          maxItems: 3,
+          items: { minLength: REASON_RISK_MIN, maxLength: SENTENCE_MAX },
+        },
         invalidation: {
           type: "object",
           additionalProperties: false,

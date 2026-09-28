@@ -93,6 +93,7 @@ src/
   lib/ai/agents/analyst/      "Tahlilchi" agent: system-prompt.ts (v2), metrics.ts (METRIC_KEYS, LEVEL_KEYS;
                               client-safe), display.ts, output-schema.ts (zod + JSON Schema), verify.ts
                               (number/invalidation/stance checks), verify-language.ts (answer language),
+                              normalize-uzbek.ts (uz apostrophes -> U+02BB/U+02BC),
                               basic-analysis.ts (rule-based fallback),
                               analyze-coin.ts (analyzeCoin: cache -> guards -> input -> model chain)
   lib/ai/analyst/             Analyst input (Step 11): analysis-input.ts (AnalysisInputSchema +
@@ -221,10 +222,11 @@ Tests are colocated as *.test.ts(x) (src/** and scripts/**).
   allowed lists drop keys whose value is null. Result `value` fields are always filled from display.
   The user message ends with one extra line after the JSON: "Respond ONLY in {language}." (the system
   prompt itself stays verbatim).
-- Model chain (src/config/ai.ts, free models only, set by the Step 14 evaluation):
+- Model chain (src/config/ai.ts, free models only, set by the Step 14.1 re-evaluation):
   dots-studio/dots-3-note-preview:free (jsonMode schema) -> nvidia/nemotron-3-super-120b-a12b:free (schema).
   OPENROUTER_MODEL_ANALYST (comma-separated ids) replaces it; unknown ids get jsonMode "none".
-  One attempt per model, 14 828 ms timeout each (rule: max(12 s, chain's worst p90 + 2 s), cap 15 s), 25 s budget for the whole request (input loading included; a
+  One attempt per model, 15 000 ms timeout each (the rule's cap: max(12 s, chain's worst p90 + 2 s),
+  cap 15 s), 25 s budget for the whole request (input loading included; a
   model is not started with < 3 s left). reasoning { enabled: false } is sent because reasoning tokens
   count against max_tokens (900). 401/403/402 stop the chain (account-wide); 429/timeouts/5xx move on.
 - Cooldown (lib/ai/core/cooldown.ts, in memory, per instance): after a 429 a model is skipped for 60 s,
@@ -233,20 +235,27 @@ Tests are colocated as *.test.ts(x) (src/** and scripts/**).
 - Model evaluation (scripts/eval-analyst.ts, manual): one attempt per candidate
   (aiConfig.analystEvalCandidates) x coin (bitcoin + first complete coin ranked 40-60) x locale, through
   createChatCompletion + checkAnswer (no chain, cache, guards or cooldown), 15 s timeout, >= 3.5 s between
-  calls, hard cap 30 calls. Report + JSON go outside the repo (EVAL_OUT_DIR). Chain decision rule
+  calls, hard cap 12 calls (Step 14.1: 2 candidates). Report + JSON (incl. the AnalysisInputs, for
+  offline re-validation) go outside the repo (EVAL_OUT_DIR). Chain decision rule
   (decideChain): >= 50% valid overall and >= 1 valid per locale; order by valid rate, then median latency;
   at most 3; with fewer than 2 qualified, the best models with any valid answer fill the chain and the
   result is flagged unreliable.
 - Validation chain per answer (any failure -> next model; one log line per attempt,
   "[analyst] <model> <outcome> <latencyMs>ms <prompt>/<completion>", never prompts, answers, keys or IPs):
   parse (strip <think>, code fences, text around the object) -> AnalystOutputSchema (enums, lengths, 2-4
-  reasons, 1-3 risks, metric/level keys from the allowed lists) -> language (verify-language.ts, over all
-  text fields together: ar >= 60% Arabic-script letters; en/uz >= 90% Latin letters, and Uzbek markers
+  reasons, 1-3 risks, each reason text and risk >= 20 characters after trim, metric/level keys from the
+  allowed lists) -> uz only: normalize-uzbek.ts on every text field (o/g + ' ’ ‘ ` -> oʻ/gʻ U+02BB, any
+  other ' ’ between letters -> ʼ U+02BC; the normalized text is what is checked and returned) -> language
+  (verify-language.ts, over all text fields together: any Han/Hiragana/Katakana/Hangul character fails in
+  every locale; ar >= 60% Arabic-script letters and Latin-script words <= 15% of all words, not counting
+  RSI, SMA, SMA20, SMA50, ATH, ATL, BTC, ETH, USD and the coin's symbol/name words; en/uz >= 90% Latin
+  letters, and Uzbek markers
   (word list, oʻ/gʻ, suffixes -dagi/-lari/-larni/-dan; never "-ning", which English -ing words end with)
   must outnumber English stopwords for uz, the reverse for en; outcome "language") -> numbers (every token in summary,
   reasons, risks and invalidation must be in collectNumbers, a display string, the neutral set
-  {1,7,14,20,24,30,50,90,100} or the coin's name/symbol; either "." or "," decimal is accepted; any
-  non-Latin digit fails) -> invalidation side (BUY level < price, SELL > price) -> stance majority
+  {1,7,14,20,24,30,40,50,60,70,80,90,100} (periods plus the RSI thresholds of prompt rule 7) or the coin's
+  name/symbol; either "." or "," decimal is accepted; in a range ("40-70", "40–70", "40 - 70", "40%-70%",
+  "30 to 70") the dash is not a minus; any non-Latin digit fails) -> invalidation side (BUY level < price, SELL > price) -> stance majority
   (warning only).
 - Fallback: no key, no passing answer, or the time/daily budget spent -> kind "basic" (basic-analysis.ts,
   "basic-v1"): trend/RSI 14/7d change rules, confidence always low, template keys (BASIC_TEMPLATE_KEYS in
@@ -542,3 +551,13 @@ Tests are colocated as *.test.ts(x) (src/** and scripts/**).
   nemotron, perModelTimeoutMs 14 828. Only one model met the rule, so free models are not reliable
   enough on their own; a paid fallback is the owner's decision. Per-model cooldown added (429 60 s,
   timeout 30 s). Eval harness runs through Vitest (no new dependency).
+- 2026-09-28: Step 14.1. Validation fixes from the Step 14 evaluation (owner-approved; system prompt
+  unchanged): RSI thresholds 30/40/60/70/80 are neutral numbers and ranges of allowed numbers pass; uz
+  answers are normalized to oʻ/gʻ (U+02BB) and ʼ (U+02BC) before the checks; CJK characters fail every
+  locale; ar allows at most 15% Latin words (tickers/indicator names/coin words excepted); reason texts and
+  risks need >= 20 characters; perModelTimeoutMs 15 000. Offline re-check of the 12 stored Step 14 answers
+  (the other 18 calls were 429/timeout): nemotron 2/6 -> 4/6 (one more has an unverifiable "$0,0816"),
+  dots-3 6/6 -> 4/6 (CJK in ar, a "Trend"-only reason in uz). Re-evaluation (12 calls, both models):
+  dots-3 6/6 (median 13.4 s, p90 14.6 s), nemotron 5/6 (1 UPSTREAM error; median 10.3 s, p90 13.0 s).
+  Both qualify; chain dots-3 -> nemotron. dots-3's Arabic still mixes English words (7.6-8.6% of words,
+  under the 15% limit).
