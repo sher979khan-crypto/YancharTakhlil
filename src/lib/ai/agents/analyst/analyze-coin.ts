@@ -6,6 +6,7 @@ import { getSiteUrl } from "@/config/site";
 import type { AnalysisInput } from "@/lib/ai/analyst/analysis-input";
 import { loadAnalysisInput } from "@/lib/ai/analyst/load-analysis-input";
 import { createTtlCache, type TtlCache } from "@/lib/ai/core/cache";
+import { createModelCooldown, type ModelCooldown } from "@/lib/ai/core/cooldown";
 import { AiBusyError, isAiError, type AiError } from "@/lib/ai/core/errors";
 import { createAiGuards, type AiGuards } from "@/lib/ai/core/guards";
 import { resolveModelChain } from "@/lib/ai/core/models";
@@ -44,7 +45,9 @@ export type AttemptOutcome =
   | "invalidation"
   | "rate_limited"
   | "timeout"
-  | "error";
+  | "error"
+  /** Skipped without a call: the model is cooling down from a recent 429 or timeout. */
+  | "cooldown";
 
 type AnalystSettings = Pick<
   typeof aiConfig.analyst,
@@ -64,6 +67,8 @@ export type AnalystDeps = {
   models: readonly AiModelConfig[];
   cache: TtlCache;
   guards: AiGuards;
+  /** Defaults to a fresh one per analyst with aiConfig.analyst.cooldown and `clock`. */
+  cooldown?: ModelCooldown;
   settings?: AnalystSettings;
   fetchImpl?: typeof fetch;
   /** Monotonic milliseconds for the time budget and latencies. */
@@ -86,7 +91,7 @@ export type AnalyzeCoin = (
 
 type Checked = { ok: true; output: AnalystOutput } | { ok: false; outcome: AttemptOutcome };
 
-type AttemptContext = {
+export type AttemptContext = {
   input: AnalysisInput;
   display: AnalysisDisplay;
   allowedMetrics: ReadonlySet<string>;
@@ -141,7 +146,7 @@ export function checkAnswer(content: string, context: AttemptContext): Checked {
   return { ok: true, output };
 }
 
-function outcomeForError(error: AiError): AttemptOutcome {
+export function outcomeForError(error: AiError): AttemptOutcome {
   if (error.code === "RATE_LIMITED" || error.code === "PAYMENT_REQUIRED") return "rate_limited";
   if (error.code === "TIMEOUT") return "timeout";
   return "error";
@@ -172,6 +177,7 @@ export function createAnalyst({
   clock = () => performance.now(),
   siteUrl = () => undefined,
   log = (line) => console.info(line),
+  cooldown = createModelCooldown({ ...aiConfig.analyst.cooldown, now: clock }),
 }: AnalystDeps): AnalyzeCoin {
   let warnedNoKey = false;
 
@@ -191,6 +197,10 @@ export function createAnalyst({
       if (remaining < settings.minAttemptMs) {
         log(`[analyst] time budget spent; skipping ${model.id}`);
         break;
+      }
+      if (cooldown.isCoolingDown(model.id)) {
+        log(`[analyst] ${model.id} cooldown 0ms -/-`);
+        continue;
       }
       if (!guards.tryAcquireLlmCall()) {
         log("[analyst] daily LLM call budget reached");
@@ -217,6 +227,8 @@ export function createAnalyst({
       } catch (error) {
         const latency = Math.round(clock() - started);
         if (!isAiError(error)) throw error;
+        if (error.code === "RATE_LIMITED") cooldown.record(model.id, "rate_limited");
+        if (error.code === "TIMEOUT") cooldown.record(model.id, "timeout");
         log(`[analyst] ${model.id} ${outcomeForError(error)} ${latency}ms -/- (${error.code})`);
         if (stopsChain(error)) break;
         continue;

@@ -31,12 +31,16 @@
   loaded only by the coin page's PriceChart via dynamic import. License rule: keep layout.attributionLogo on
   and show the NOTICE text + https://www.tradingview.com/ link on the Disclaimer page
   (src/config/third-party-notices.ts; the npm package ships no NOTICE, so the text is from the v5.2.1 tag).
+- Scripts (Step 14): no TS runner dependency. scripts/eval-analyst.ts runs through Vitest with its own
+  config (scripts/eval-analyst.config.ts), which reuses the "@/" and server-only aliases.
 - Planned (added only in their own steps): Playwright.
 - Before adding ANY dependency: check its official docs and npm for the current version and compatibility
   with Next 16 / React / Tailwind 4, and record it here.
 
 ## 4. Commands
 - pnpm dev | build | start | lint | typecheck | test | test:watch | format | format:check
+- EVAL_CONFIRM=1 pnpm eval:analyst: manual AI Analyst model evaluation (real OpenRouter calls, max 30;
+  refuses without EVAL_CONFIRM=1; never in CI). Not part of the Definition of Done.
 - Definition of Done for every task: format:check, lint, typecheck, test and build all pass, and the page
   was checked in a browser (en, ar, uz, and mobile width once those exist).
 
@@ -83,7 +87,8 @@ src/
   lib/ai/core/                Shared by both agents (server-only): openrouter-client.ts (one chat completion,
                               typed AiError), errors.ts (AiError, AiBusyError), guards.ts (per-IP + global
                               daily limits, clientIpFromHeaders), cache.ts (in-process TTL cache),
-                              parse-json.ts (defensive JSON extraction), models.ts (model chain + env override)
+                              parse-json.ts (defensive JSON extraction), models.ts (model chain + env override),
+                              cooldown.ts (per-model circuit breaker after 429 / timeout)
   lib/ai/agents/assistant/    "Kotib" agent: prompt, config, tools
   lib/ai/agents/analyst/      "Tahlilchi" agent: system-prompt.ts (v2), metrics.ts (METRIC_KEYS, LEVEL_KEYS;
                               client-safe), display.ts, output-schema.ts (zod + JSON Schema), verify.ts
@@ -104,7 +109,9 @@ src/
   data/                       Static JSON: excluded-coins.json, fixtures/market-snapshot.json,
                               knowledge/{en,ar,uz}.json
   messages/                   UI translations: en.json, ar.json, uz.json
-Tests are colocated as *.test.ts(x).
+scripts/                      Manual tools, not part of the app bundle: eval-analyst.ts (+ .config.ts) and
+                              eval-analyst-stats.ts (pure aggregation, decision rule, report; unit-tested)
+Tests are colocated as *.test.ts(x) (src/** and scripts/**).
 
 ## 6. Architecture rules
 - UI never calls external APIs. Flow: external API -> provider implementation -> interface -> Server
@@ -214,12 +221,22 @@ Tests are colocated as *.test.ts(x).
   allowed lists drop keys whose value is null. Result `value` fields are always filled from display.
   The user message ends with one extra line after the JSON: "Respond ONLY in {language}." (the system
   prompt itself stays verbatim).
-- Model chain (src/config/ai.ts, free models only): qwen/qwen3.8-27b:free (jsonMode schema) ->
-  google/gemma-4-31b-it:free (object) -> nvidia/nemotron-3-super-120b-a12b:free (schema).
+- Model chain (src/config/ai.ts, free models only, set by the Step 14 evaluation):
+  dots-studio/dots-3-note-preview:free (jsonMode schema) -> nvidia/nemotron-3-super-120b-a12b:free (schema).
   OPENROUTER_MODEL_ANALYST (comma-separated ids) replaces it; unknown ids get jsonMode "none".
-  One attempt per model, 12 s timeout each, 25 s budget for the whole request (input loading included; a
+  One attempt per model, 14 828 ms timeout each (rule: max(12 s, chain's worst p90 + 2 s), cap 15 s), 25 s budget for the whole request (input loading included; a
   model is not started with < 3 s left). reasoning { enabled: false } is sent because reasoning tokens
   count against max_tokens (900). 401/403/402 stop the chain (account-wide); 429/timeouts/5xx move on.
+- Cooldown (lib/ai/core/cooldown.ts, in memory, per instance): after a 429 a model is skipped for 60 s,
+  after a timeout for 30 s (aiConfig.analyst.cooldown). A skipped model makes no call, does not count
+  against the daily LLM budget, and logs "[analyst] <model> cooldown 0ms -/-".
+- Model evaluation (scripts/eval-analyst.ts, manual): one attempt per candidate
+  (aiConfig.analystEvalCandidates) x coin (bitcoin + first complete coin ranked 40-60) x locale, through
+  createChatCompletion + checkAnswer (no chain, cache, guards or cooldown), 15 s timeout, >= 3.5 s between
+  calls, hard cap 30 calls. Report + JSON go outside the repo (EVAL_OUT_DIR). Chain decision rule
+  (decideChain): >= 50% valid overall and >= 1 valid per locale; order by valid rate, then median latency;
+  at most 3; with fewer than 2 qualified, the best models with any valid answer fill the chain and the
+  result is flagged unreliable.
 - Validation chain per answer (any failure -> next model; one log line per attempt,
   "[analyst] <model> <outcome> <latencyMs>ms <prompt>/<completion>", never prompts, answers, keys or IPs):
   parse (strip <think>, code fences, text around the object) -> AnalystOutputSchema (enums, lengths, 2-4
@@ -519,3 +536,9 @@ Tests are colocated as *.test.ts(x).
   come from the HTTP cache). Expand/collapse uses grid-rows 0fr -> 1fr with @starting-style (Tailwind
   `starting:`) for the open animation; collapse unmounts after duration-slow (at once under reduced motion).
   The coin page's chart/analyst row is top-aligned so a long analysis does not stretch the chart card.
+- 2026-09-28: Step 14. Free-model evaluation (30 calls, bitcoin + sky, en/ar/uz): dots-3-note-preview
+  6/6 valid (median 10.8 s, p90 12.8 s); nemotron-3-super 2/6 (4 number-check failures, 0/2 uz);
+  qwen3.8-27b, gemma-4-31b-it and gemma-4-26b-a4b-it 0/6 (17 of 18 calls 429, 1 timeout). Chain: dots-3 ->
+  nemotron, perModelTimeoutMs 14 828. Only one model met the rule, so free models are not reliable
+  enough on their own; a paid fallback is the owner's decision. Per-model cooldown added (429 60 s,
+  timeout 30 s). Eval harness runs through Vitest (no new dependency).

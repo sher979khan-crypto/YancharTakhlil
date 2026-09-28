@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "eval:analyst": "vitest run --config scripts/eval-analyst.config.ts"
   },
   "dependencies": {
     "clsx": "2.1.1",

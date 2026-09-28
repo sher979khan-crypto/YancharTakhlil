@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { AiModelConfig } from "@/config/ai";
+import { aiConfig, type AiModelConfig } from "@/config/ai";
 import { loadAnalysisInput } from "@/lib/ai/analyst/load-analysis-input";
 import { createTtlCache } from "@/lib/ai/core/cache";
 import { AiBusyError } from "@/lib/ai/core/errors";
@@ -257,6 +257,40 @@ describe("analyzeCoin: model errors and budgets", () => {
     ]);
   });
 
+  it("skips a model without a call while it cools down from a 429 or a timeout", async () => {
+    const { run, fetchImpl, lines, advance, advanceCache } = setup({
+      replies: [
+        { status: 429 },
+        { status: 408 },
+        { content: json(VALID_EN_ANSWER) },
+        { content: json(VALID_EN_ANSWER) },
+        { content: json(VALID_EN_ANSWER) },
+        { content: json(VALID_EN_ANSWER) },
+      ],
+    });
+    await run();
+    advanceCache(900_000);
+    lines.length = 0;
+    expect((await run()).model).toBe("m/three:free");
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+    expect(lines.slice(0, 2)).toEqual([
+      "[analyst] m/one:free cooldown 0ms -/-",
+      "[analyst] m/two:free cooldown 0ms -/-",
+    ]);
+
+    // 32 s after the timeout: model two is back; model one (429 at 1 s) waits until 61 s.
+    advance(30_000);
+    advanceCache(900_000);
+    expect((await run()).model).toBe("m/two:free");
+    expect(fetchImpl).toHaveBeenCalledTimes(5);
+
+    advance(30_000);
+    advanceCache(900_000);
+    // A second client: the per-IP limit (3/min) is not what this test is about.
+    expect((await run("bitcoin", "en", "203.0.113.10")).model).toBe("m/one:free");
+    expect(fetchImpl).toHaveBeenCalledTimes(6);
+  });
+
   it("falls back to a basic analysis when every model fails", async () => {
     const { run, fetchImpl, lines } = setup({
       replies: [{ status: 500 }, { content: "no json" }, { content: json({}) }],
@@ -314,15 +348,20 @@ describe("analyzeCoin: model errors and budgets", () => {
   it("gives the last model only the time left in the budget", async () => {
     const { run, fetchImpl } = setup({
       replies: [
-        { content: "x", delayMs: 12_000 },
-        { content: "x", delayMs: 5_000 },
+        { content: "x", delayMs: 10_000 },
+        { content: "x", delayMs: 7_000 },
         { content: json(VALID_EN_ANSWER) },
       ],
     });
     const timeout = vi.spyOn(AbortSignal, "timeout");
     await run();
     expect(fetchImpl).toHaveBeenCalledTimes(3);
-    expect(timeout.mock.calls.map(([ms]) => ms)).toEqual([12_000, 12_000, 8_000]);
+    const { perModelTimeoutMs } = aiConfig.analyst;
+    expect(timeout.mock.calls.map(([ms]) => ms)).toEqual([
+      perModelTimeoutMs,
+      perModelTimeoutMs,
+      8_000,
+    ]);
     timeout.mockRestore();
   });
 
