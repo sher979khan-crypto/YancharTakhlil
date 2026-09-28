@@ -27,8 +27,10 @@ import { cn } from "@/lib/utils/cn";
 
 import {
   CONFIDENCE_SEGMENT_COUNT,
+  disclaimerKind,
   toAnalysisView,
   type AnalysisView,
+  type DisclaimerKind,
   type ReasonView,
   type SignalTone,
   type StanceTone,
@@ -119,7 +121,11 @@ export function AnalysisPanel({
         </ErrorNotice>
       ) : null}
 
-      <PanelFooter coinId={coin.id} model={view?.model ?? null} showCoinLink={variant === "list"} />
+      <PanelFooter
+        coinId={coin.id}
+        disclaimer={view?.disclaimer ?? disclaimerKind(null)}
+        showCoinLink={variant === "list"}
+      />
     </div>
   );
 }
@@ -199,6 +205,12 @@ const SIGNAL_CLASSES: Readonly<Record<SignalTone, string>> = {
   down: "border-down/30 bg-down/12 text-down shadow-glow-down",
 };
 
+const SIGNAL_TEXT_CLASSES: Readonly<Record<SignalTone, string>> = {
+  up: "text-up",
+  brand: "text-brand",
+  down: "text-down",
+};
+
 const STANCE_ICON: Readonly<Record<Stance, ComponentType<IconProps>>> = {
   bullish: ArrowUpIcon,
   bearish: ArrowDownIcon,
@@ -229,6 +241,16 @@ function ResultView({ view }: { view: AnalysisView }) {
 
       <div className="grid grid-cols-1 gap-5 @2xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] @2xl:gap-8">
         <div className="flex flex-col gap-4">
+          {/* The suggestion headline (owner wording: something to consider, never a command). */}
+          <p
+            className={cn(
+              "flex items-center gap-2 font-display text-2xl font-semibold text-balance",
+              SIGNAL_TEXT_CLASSES[view.signalTone],
+            )}
+          >
+            <SignalIcon className="shrink-0" />
+            {t(`suggestion.${view.suggestion}`)}
+          </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
             <p
               className={cn(
@@ -399,17 +421,17 @@ function ErrorNotice({ message, className, children }: ErrorNoticeProps) {
   );
 }
 
-type PanelFooterProps = { coinId: string; model: string | null; showCoinLink: boolean };
+type PanelFooterProps = { coinId: string; disclaimer: DisclaimerKind; showCoinLink: boolean };
 
 const footerLink =
   "inline-flex min-h-10 items-center gap-1 rounded-sm font-medium text-ice underline-offset-4 hover:underline";
 
-function PanelFooter({ coinId, model, showCoinLink }: PanelFooterProps) {
+function PanelFooter({ coinId, disclaimer, showCoinLink }: PanelFooterProps) {
   const t = useTranslations("Analyst");
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 border-t border-glass-border pt-1 text-xs text-fg-subtle">
-      <p className="py-2">{t("disclaimer")}</p>
+      <p className="py-2 text-pretty">{t(`disclaimer.${disclaimer}`)}</p>
       <Link href="/disclaimer" className={footerLink}>
         {t("fullDisclaimer")}
       </Link>
@@ -418,18 +440,6 @@ function PanelFooter({ coinId, model, showCoinLink }: PanelFooterProps) {
           {t("openCoinPage")}
           <ChevronIcon />
         </Link>
-      ) : null}
-      {model ? (
-        <p className="py-2 @lg:ms-auto">
-          {t.rich("model", {
-            model,
-            m: (chunks) => (
-              <bdi dir="ltr" className="font-mono">
-                {chunks}
-              </bdi>
-            ),
-          })}
-        </p>
       ) : null}
     </div>
   );

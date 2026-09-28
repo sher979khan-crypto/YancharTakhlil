@@ -270,6 +270,11 @@
       "hint": "Bu 25 soniyagacha davom etishi mumkin.",
       "elapsed": "{seconds} s"
     },
+    "suggestion": {
+      "BUY": "Sotib olishni oʻylab koʻring",
+      "HOLD": "Saqlab turishni oʻylab koʻring",
+      "SELL": "Sotishni oʻylab koʻring"
+    },
     "signal": {
       "BUY": "Sotib olish",
       "HOLD": "Saqlash",
@@ -302,10 +307,12 @@
     "busyReady": "Endi qayta urinib koʻrishingiz mumkin.",
     "unavailable": "Tahlil hozircha mavjud emas.",
     "retry": "Qayta urinish",
-    "disclaimer": "Moliyaviy maslahat emas. AI xato qilishi mumkin.",
+    "disclaimer": {
+      "ai": "Men sunʼiy intellekt modeliman, xato qilishim mumkin. Bu moliyaviy maslahat emas — yakuniy qaror sizning ixtiyoringizda.",
+      "basic": "Bu qoidalar asosidagi avtomatik tahlil, moliyaviy maslahat emas — yakuniy qaror sizning ixtiyoringizda."
+    },
     "fullDisclaimer": "Masʼuliyatdan voz kechish matni",
     "openCoinPage": "Tanga sahifasini ochish",
-    "model": "Model: <m>{model}</m>",
     "metrics": {
       "indicators": {
         "trend": "Trend (SMA 20 va 50)",

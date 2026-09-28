@@ -27,15 +27,18 @@ export const aiConfig = {
      * Both qualified:
      * - dots-3-note-preview: 6/6 valid (2/2/2), median 13.4 s, p90 14.6 s, no 429s.
      * - nemotron-3-super: 5/6 valid (1/2/2; 1 UPSTREAM error), median 10.3 s, p90 13.0 s.
+     * Step 14.2 (owner, after the Mentor's quality review of those answers): nemotron goes first.
+     * Its answers were more balanced (dots-3 said HOLD every time), its Arabic cleaner (dots-3
+     * mixed English words in) and it was faster; the valid-rate order alone put dots-3 first.
      * Step 14 (old rules) had dots-3 6/6 and nemotron 2/6: its 4 rejections were RSI thresholds
      * such as "40-70", now neutral numbers. Dropped in Step 14: qwen3.8-27b (5x 429, 1 timeout),
      * gemma-4-31b-it and gemma-4-26b-a4b-it (6/6 429).
      */
     models: [
       // supported_parameters: response_format and structured_outputs
-      { id: "dots-studio/dots-3-note-preview:free", jsonMode: "schema" },
-      // supported_parameters: response_format and structured_outputs
       { id: "nvidia/nemotron-3-super-120b-a12b:free", jsonMode: "schema" },
+      // supported_parameters: response_format and structured_outputs
+      { id: "dots-studio/dots-3-note-preview:free", jsonMode: "schema" },
     ] satisfies readonly AiModelConfig[],
     temperature: 0.3,
     maxTokens: 900,
@@ -59,7 +62,7 @@ export const aiConfig = {
      * timed out is skipped for a while instead of spending the request's budget on it again.
      */
     cooldown: { rateLimitedMs: 60_000, timeoutMs: 30_000 },
-    promptVersion: "analyst-v2",
+    promptVersion: "analyst-v3",
   },
   /**
    * Candidates for the manual evaluation (scripts/eval-analyst.ts, `pnpm eval:analyst`); never

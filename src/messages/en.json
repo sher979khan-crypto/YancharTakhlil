@@ -270,6 +270,11 @@
       "hint": "This can take up to 25 seconds.",
       "elapsed": "{seconds} s"
     },
+    "suggestion": {
+      "BUY": "Consider buying",
+      "HOLD": "Consider holding",
+      "SELL": "Consider selling"
+    },
     "signal": {
       "BUY": "BUY",
       "HOLD": "HOLD",
@@ -302,10 +307,12 @@
     "busyReady": "You can try again now.",
     "unavailable": "Analysis is unavailable right now.",
     "retry": "Retry",
-    "disclaimer": "Not financial advice. AI can make mistakes.",
+    "disclaimer": {
+      "ai": "I'm an AI model and I can make mistakes. This is not financial advice — the final decision is yours.",
+      "basic": "This is an automatic rule-based analysis, not financial advice — the final decision is yours."
+    },
     "fullDisclaimer": "Full disclaimer",
     "openCoinPage": "Open coin page",
-    "model": "Model: <m>{model}</m>",
     "metrics": {
       "indicators": {
         "trend": "Trend (SMA 20 vs 50)",

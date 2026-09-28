@@ -214,16 +214,20 @@ Tests are colocated as *.test.ts(x) (src/** and scripts/**).
   FDV) 3 significant digits; ratios 4 decimals. Non-finite -> null, never -0.
 - collectNumbers(input) lists every finite number in AnalysisInput plus |x| of each negative one; any
   number in the LLM output that is not in this list is treated as invented (Step 12).
-- The AI writes numbers in its text, but the server verifies every one. System prompt: owner-approved v2,
-  verbatim in src/lib/ai/agents/analyst/system-prompt.ts (ANALYST_SYSTEM_PROMPT_V2, promptVersion
-  "analyst-v2", {language} = English | Arabic | Uzbek (Latin script); a hash test locks the text).
+- The AI writes numbers in its text, but the server verifies every one. System prompt: owner-approved v3,
+  verbatim in src/lib/ai/agents/analyst/system-prompt.ts (ANALYST_SYSTEM_PROMPT_V3, promptVersion
+  "analyst-v3", {language} = English | Arabic | Uzbek (Latin script); a hash test locks the text).
+  v3 differs from v2 only in the TASK line and rule 13: ONE educational suggestion to consider (never a
+  command, certainty or personal advice), and the summary's LAST sentence states it ("Based on the
+  data, consider buying/holding/selling."; uz "Maʼlumotlarga koʻra, ... oʻylab koʻring."; ar
+  "بناءً على البيانات، فكّر في ..."). The example sentences have no digits (number check unaffected).
   The model gets one user message: JSON { input, display, allowedMetrics, allowedLevels, language }.
   display = every metric/level (+ price, ATH, cap, volume) pre-formatted through format.ts for the locale;
   allowed lists drop keys whose value is null. Result `value` fields are always filled from display.
   The user message ends with one extra line after the JSON: "Respond ONLY in {language}." (the system
   prompt itself stays verbatim).
-- Model chain (src/config/ai.ts, free models only, set by the Step 14.1 re-evaluation):
-  dots-studio/dots-3-note-preview:free (jsonMode schema) -> nvidia/nemotron-3-super-120b-a12b:free (schema).
+- Model chain (src/config/ai.ts, free models only; Step 14.1 re-evaluation, order set in Step 14.2):
+  nvidia/nemotron-3-super-120b-a12b:free (jsonMode schema) -> dots-studio/dots-3-note-preview:free (schema).
   OPENROUTER_MODEL_ANALYST (comma-separated ids) replaces it; unknown ids get jsonMode "none".
   One attempt per model, 15 000 ms timeout each (the rule's cap: max(12 s, chain's worst p90 + 2 s),
   cap 15 s), 25 s budget for the whole request (input loading included; a
@@ -265,8 +269,10 @@ Tests are colocated as *.test.ts(x) (src/** and scripts/**).
   the free tier's 50/day. IP = x-nf-client-connection-ip, then the first x-forwarded-for, else "unknown".
 - Model IDs are configured per agent in src/config/ai.ts (env override allowed). Never hard-code model
   IDs anywhere else.
-- The "Not financial advice" disclaimer is rendered by the UI on every AI answer. Never rely on the LLM
-  to include it.
+- The disclaimer is rendered by the UI on every AI answer (Analyst.disclaimer.{ai,basic}; ai, first
+  person: "I'm an AI model and I can make mistakes. This is not financial advice — the final decision is
+  yours."; basic: "This is an automatic rule-based analysis, not financial advice — the final decision
+  is yours."; the ai text also shows before a result). Never rely on the LLM to include it.
 - Analyst UI (Step 13): a "✦ AI" button per markets row (last table column) and card opens AnalysisPanel
   under it (table: an extra <tr> with one cell across all columns; cards: below the card, and the card is
   no longer one big link). One panel open at a time; results are kept per coin in useAnalyses for the
@@ -275,7 +281,9 @@ Tests are colocated as *.test.ts(x) (src/** and scripts/**).
   surfaces without blur. Signal = icon + localized label + tone (BUY up, HOLD brand, SELL down);
   confidence = 3 segments (no percentages); reasons show a metric chip (Analyst.metrics.<key>, value in
   <bdi dir="ltr">, the trend as a localized word) and the text (ai) or Analyst.basic.templates.<key>
-  (basic); risks and the model id only for ai. AI_BUSY shows a countdown from Retry-After and enables
+  (basic); risks only for ai. Above the signal badge, a headline Analyst.suggestion.<signal> ("Consider
+  buying / holding / selling", uz "... oʻylab koʻring", ar "فكّر في ...") in the signal tone with its
+  icon, for ai and basic (Step 14.2). The model id is not shown in the UI (the API keeps `model`). AI_BUSY shows a countdown from Retry-After and enables
   Retry at 0. The loading lines are decorative (aria-hidden) and time-based, not real progress; one
   sr-only role="status" announces each state.
 - System prompts are versioned files. Change them only with owner approval.
@@ -561,3 +569,10 @@ Tests are colocated as *.test.ts(x) (src/** and scripts/**).
   dots-3 6/6 (median 13.4 s, p90 14.6 s), nemotron 5/6 (1 UPSTREAM error; median 10.3 s, p90 13.0 s).
   Both qualify; chain dots-3 -> nemotron. dots-3's Arabic still mixes English words (7.6-8.6% of words,
   under the 15% limit).
+- 2026-09-28: Step 14.2 (owner). Analyst wording: system prompt v3 ("analyst-v3"; only the TASK line and
+  rule 13 changed): the view is a suggestion to consider, and the summary ends with "Based on the data,
+  consider buying/holding/selling." (uz/ar equivalents). The panel shows the headline
+  Analyst.suggestion.<signal> for ai and basic; the footer disclaimer is first person for ai and names
+  the rule-based analysis for basic; the "Model: …" line is gone from the UI (API unchanged). Chain order
+  nemotron-3-super -> dots-3 after the Mentor's quality review (nemotron more balanced, cleaner Arabic,
+  faster; dots-3 said HOLD every time). Timeout stays 15 000 ms.

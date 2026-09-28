@@ -7,11 +7,11 @@ const data = { source: "coingecko", fetchedAt: "2026-09-27T11:58:00.000Z", stale
 export const AI_RESULT: AnalysisResult = {
   kind: "ai",
   model: "qwen/qwen3.8-27b:free",
-  promptVersion: "analyst-v2",
+  promptVersion: "analyst-v3",
   signal: "BUY",
   confidence: "medium",
   summary:
-    "Based on the data, the analysis recommends buying. The trend is up and the price is +1.55% above the 50-day average.",
+    "The trend is up and the price is +1.55% above the 50-day average. Based on the data, consider buying.",
   reasons: [
     {
       metric: "indicators.trend",

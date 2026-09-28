@@ -76,8 +76,10 @@ export type AnalysisView = {
   reasons: ReasonView[];
   risks: string[];
   invalidation: InvalidationView | null;
-  /** Shown for transparency, only for kind "ai". */
-  model: string | null;
+  /** Headline key (Analyst.suggestion.<signal>): "Consider buying", never a command. */
+  suggestion: Signal;
+  /** Footer disclaimer key (Analyst.disclaimer.<kind>). */
+  disclaimer: DisclaimerKind;
   generatedAt: string;
   /** Fixture market data: the demo-data note is required. */
   isDemo: boolean;
@@ -97,6 +99,16 @@ function metricValue(metric: MetricKey, value: string): MetricValueView {
   return metric === "indicators.trend" && isTrendValue(value)
     ? { kind: "trend", trend: value }
     : { kind: "formatted", value };
+}
+
+export type DisclaimerKind = AnalysisResult["kind"];
+
+/**
+ * The footer is rendered in every state: before a result (idle, loading, errors) it speaks for
+ * the AI Analyst, afterwards for whichever kind answered.
+ */
+export function disclaimerKind(result: AnalysisResult | null): DisclaimerKind {
+  return result?.kind ?? "ai";
 }
 
 /** Everything the panel shows, decided in one pure, tested place. */
@@ -123,7 +135,8 @@ export function toAnalysisView(result: AnalysisResult): AnalysisView {
       value: result.invalidation.value,
       text: viewText(ai ? result.invalidation.text : null, result.invalidation.templateKey),
     },
-    model: ai ? result.model : null,
+    suggestion: result.signal,
+    disclaimer: disclaimerKind(result),
     generatedAt: result.generatedAt,
     isDemo: result.data.source === "fixture",
   };

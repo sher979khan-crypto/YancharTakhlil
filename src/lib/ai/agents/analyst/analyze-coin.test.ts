@@ -103,7 +103,7 @@ describe("analyzeCoin: AI answers", () => {
     expect(result).toMatchObject({
       kind: "ai",
       model: "m/one:free",
-      promptVersion: "analyst-v2",
+      promptVersion: "analyst-v3",
       signal: "BUY",
       confidence: "medium",
       summary: VALID_EN_ANSWER.summary,
