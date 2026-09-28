@@ -45,6 +45,7 @@ function setup({
 } = {}) {
   let time = 0;
   const clock = () => time;
+  let cacheTime = 0;
   const queue = [...replies];
   const fetchImpl = vi.fn<typeof fetch>(async (_url, init) => {
     const reply = queue.shift();
@@ -66,7 +67,7 @@ function setup({
     loadInput,
     getApiKey: () => apiKey || undefined,
     models: MODELS,
-    cache: createTtlCache({ ttlMs: 900_000 }),
+    cache: createTtlCache({ ttlMs: 900_000, now: () => cacheTime }),
     guards: createAiGuards({ ...limits, now: () => TEST_NOW.getTime() }),
     fetchImpl,
     clock,
@@ -75,7 +76,14 @@ function setup({
   });
   const run = (id = "bitcoin", locale: "en" | "ar" | "uz" = "en", ip = IP) =>
     analyze(id, locale, { ip, now: () => TEST_NOW });
-  return { run, fetchImpl, lines, loadInput, advance: (ms: number) => (time += ms) };
+  return {
+    run,
+    fetchImpl,
+    lines,
+    loadInput,
+    advance: (ms: number) => (time += ms),
+    advanceCache: (ms: number) => (cacheTime += ms),
+  };
 }
 
 function requestBody(fetchImpl: ReturnType<typeof setup>["fetchImpl"], call = 0) {
@@ -134,7 +142,9 @@ describe("analyzeCoin: AI answers", () => {
     expect(system?.role).toBe("system");
     expect(system?.content).toContain("Write all text in English.");
     expect(user?.role).toBe("user");
-    const payload = JSON.parse(user?.content ?? "") as Record<string, unknown>;
+    const [data = "", languageLine] = (user?.content ?? "").split("\n\n");
+    expect(languageLine).toBe("Respond ONLY in English.");
+    const payload = JSON.parse(data) as Record<string, unknown>;
     expect(Object.keys(payload)).toEqual([
       "input",
       "display",
@@ -155,9 +165,9 @@ describe("analyzeCoin: AI answers", () => {
     const result = await run("bitcoin", "uz");
     expect(result.kind).toBe("ai");
     expect(result.invalidation?.value).toBe("$95 762,90");
-    expect(requestBody(fetchImpl).messages[0]?.content).toContain(
-      "Write all text in Uzbek (Latin script).",
-    );
+    const [system, user] = requestBody(fetchImpl).messages;
+    expect(system?.content).toContain("Write all text in Uzbek (Latin script).");
+    expect(user?.content.endsWith("\n\nRespond ONLY in Uzbek (Latin script).")).toBe(true);
   });
 
   it("parses an answer wrapped in a think block and a code fence", async () => {
@@ -192,6 +202,7 @@ describe("analyzeCoin: validation chain", () => {
   it.each([
     ["invalid_json", "Sorry, I can't produce JSON."],
     ["schema", json({ ...VALID_EN_ANSWER, signal: "STRONG BUY" })],
+    ["language", json(VALID_UZ_ANSWER)],
     ["numbers", json(invalidNumbers)],
     ["invalidation", json(wrongSide)],
   ])("rejects an answer with outcome %s and tries the next model", async (outcome, content) => {
@@ -351,6 +362,29 @@ describe("analyzeCoin: cache and guards", () => {
     // A different locale is a different entry, and this IP's minute slot is used up.
     await expect(run("bitcoin", "uz")).rejects.toBeInstanceOf(AiBusyError);
     expect((await run("bitcoin", "uz", "198.51.100.2")).kind).toBe("ai");
+  });
+
+  it("keeps a basic result for 2 minutes and an ai result for 15", async () => {
+    const { run, fetchImpl, loadInput, advanceCache } = setup({
+      replies: [{ status: 503 }, { status: 503 }, { status: 503 }],
+    });
+    const basic = await run();
+    expect(basic.kind).toBe("basic");
+    advanceCache(119_999);
+    expect(await run()).toBe(basic);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    advanceCache(1);
+    // Expired: the model chain gets another chance.
+    const again = await run();
+    expect(again).not.toBe(basic);
+    expect(loadInput).toHaveBeenCalledTimes(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(6);
+
+    const ai = setup({ replies: [{ content: json(VALID_EN_ANSWER) }] });
+    const first = await ai.run();
+    ai.advanceCache(899_999);
+    expect(await ai.run()).toBe(first);
+    expect(ai.loadInput).toHaveBeenCalledOnce();
   });
 
   it("shares one analysis between concurrent requests", async () => {

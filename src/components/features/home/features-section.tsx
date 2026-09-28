@@ -20,15 +20,33 @@ const SECTION_ID = "features";
 const HEADING_ID = "features-title";
 
 /** What exists today links to it; what is coming gets a "Coming soon" badge instead. */
-type Feature = { Icon: ComponentType<IconProps> } & (
-  | { id: "markets" | "coin"; tone: "ice"; href: string }
-  | { id: "analyst" | "assistant"; tone: "cosmos"; href?: undefined }
-);
+type Feature = {
+  id: "markets" | "coin" | "analyst" | "assistant";
+  Icon: ComponentType<IconProps>;
+  tone: "ice" | "cosmos";
+  link?: { href: string; label: "items.markets.link" | "items.coin.link" | "analystCta" };
+};
 
 const FEATURES: readonly Feature[] = [
-  { id: "markets", Icon: ChartIcon, tone: "ice", href: "/markets" },
-  { id: "coin", Icon: CoinIcon, tone: "ice", href: "/markets/bitcoin" },
-  { id: "analyst", Icon: SparkleIcon, tone: "cosmos" },
+  {
+    id: "markets",
+    Icon: ChartIcon,
+    tone: "ice",
+    link: { href: "/markets", label: "items.markets.link" },
+  },
+  {
+    id: "coin",
+    Icon: CoinIcon,
+    tone: "ice",
+    link: { href: "/markets/bitcoin", label: "items.coin.link" },
+  },
+  // The Analyst runs from the markets list ("✦ AI" on every row).
+  {
+    id: "analyst",
+    Icon: SparkleIcon,
+    tone: "cosmos",
+    link: { href: "/markets", label: "analystCta" },
+  },
   { id: "assistant", Icon: ChatIcon, tone: "cosmos" },
 ];
 
@@ -37,8 +55,9 @@ const iconTone = {
   ice: "border-ice/30 bg-ice/12 text-ice",
   cosmos: "border-cosmos/30 bg-cosmos/12 text-cosmos",
 } as const;
+const linkTone = { ice: "text-ice", cosmos: "text-cosmos" } as const;
 
-/** What the app does: two features that exist and the two AI agents that are coming. */
+/** What the app does: the markets, coin pages and the AI Analyst, and the AI Assistant to come. */
 export function FeaturesSection() {
   const t = useTranslations("Home.features");
 
@@ -67,16 +86,19 @@ export function FeaturesSection() {
             <h3 className="font-medium text-fg">{t(`items.${feature.id}.title`)}</h3>
             <p className="text-sm text-pretty text-fg-muted">{t(`items.${feature.id}.body`)}</p>
             <div className="mt-auto pt-1">
-              {feature.href === undefined ? (
+              {feature.link === undefined ? (
                 <Badge tone="cosmos">{t("comingSoon")}</Badge>
               ) : (
                 <Link
-                  href={feature.href}
+                  href={feature.link.href}
                   // No prefetch: the coin link would render a coin page upstream on every visit.
                   prefetch={false}
-                  className="inline-flex min-h-10 items-center gap-1 rounded-sm text-sm font-medium text-ice underline-offset-4 hover:underline"
+                  className={cn(
+                    "inline-flex min-h-10 items-center gap-1 rounded-sm text-sm font-medium underline-offset-4 hover:underline",
+                    linkTone[feature.tone],
+                  )}
                 >
-                  {t(`items.${feature.id}.link`)}
+                  {t(feature.link.label)}
                   <ChevronIcon />
                 </Link>
               )}

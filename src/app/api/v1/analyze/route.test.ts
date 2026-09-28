@@ -49,16 +49,30 @@ afterEach(() => {
 });
 
 describe("GET /api/v1/analyze", () => {
-  it("returns a basic analysis without a key, with the AI CDN cache headers", async () => {
+  it("returns a basic analysis without a key, cached briefly by the CDN", async () => {
     const response = await get("?id=bitcoin&locale=en");
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe(
-      "public, max-age=0, s-maxage=900, stale-while-revalidate=300",
+      "public, max-age=0, s-maxage=120, stale-while-revalidate=120",
     );
     const body = AnalyzeResponseSchema.parse(await response.json());
     expect(body.data).toMatchObject({ kind: "basic", model: null, confidence: "low" });
     expect(body.meta).toEqual(body.data.data);
     expect(body.meta.source).toBe("fixture");
+  });
+
+  it("caches an ai result for 15 minutes", async () => {
+    const basic = AnalyzeResponseSchema.parse(await (await get("?id=bitcoin&locale=en")).json());
+    vi.mocked(analyzeCoin).mockResolvedValueOnce({
+      ...basic.data,
+      kind: "ai",
+      model: "m/one:free",
+    });
+    const response = await get("?id=bitcoin&locale=en");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=0, s-maxage=900, stale-while-revalidate=300",
+    );
   });
 
   it("passes id, locale and the client IP to the analyst", async () => {

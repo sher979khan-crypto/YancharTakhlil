@@ -8,6 +8,11 @@ export const cacheTtl = {
   apiNotFound: 60,
   /** Per coin + locale (CDN and the in-process AI cache). */
   aiAnalysis: 900,
+  /**
+   * A rule-based "basic" result (the model chain failed or was busy) is kept only briefly, so the
+   * next visitor gets another chance at an AI answer.
+   */
+  aiBasic: 120,
   /** CDN stale-while-revalidate for an analysis: shorter than the usual 5x ttl. */
   aiAnalysisStaleWhileRevalidate: 300,
   /** How often client components poll /api/v1 for fresh prices. */

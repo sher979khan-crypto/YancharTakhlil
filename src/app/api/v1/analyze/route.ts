@@ -6,7 +6,8 @@ import { fail, ok } from "@/lib/api/responses";
 
 /**
  * GET /api/v1/analyze?id=<coin id>&locale=<en|ar|uz>. A GET with query parameters so the CDN can
- * cache each coin + locale for cacheTtl.aiAnalysis. Both "ai" and "basic" results are 200.
+ * cache each coin + locale: cacheTtl.aiAnalysis for an "ai" result, cacheTtl.aiBasic for a
+ * "basic" one (so the model chain is tried again soon). Both kinds are 200.
  */
 export async function GET(request: Request): Promise<Response> {
   try {
@@ -14,11 +15,11 @@ export async function GET(request: Request): Promise<Response> {
     const id = parseCoinId(searchParams.get("id") ?? "");
     const locale = parseLocale(searchParams);
     const result = await analyzeCoin(id, locale, { ip: clientIpFromHeaders(request.headers) });
-    return ok(
-      { data: result, ...result.data },
-      cacheTtl.aiAnalysis,
-      cacheTtl.aiAnalysisStaleWhileRevalidate,
-    );
+    const [ttl, staleWhileRevalidate] =
+      result.kind === "ai"
+        ? [cacheTtl.aiAnalysis, cacheTtl.aiAnalysisStaleWhileRevalidate]
+        : [cacheTtl.aiBasic, cacheTtl.aiBasic];
+    return ok({ data: result, ...result.data }, ttl, staleWhileRevalidate);
   } catch (error) {
     return fail(error);
   }

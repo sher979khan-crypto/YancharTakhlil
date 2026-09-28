@@ -57,8 +57,13 @@ src/
                               (= usePolling(fetchCoins)), market-status (SourceBadge, StaleNotice,
                               PollErrorNotice; shared with the coin header)
   components/features/coin-detail/ CoinBreadcrumb, CoinHeader (client: polls /api/v1/coins/{id}),
-                              PriceChart (client: lightweight-charts, 7/30/90D), AnalystPlaceholder,
-                              CoinStats (server, solid cards)
+                              PriceChart (client: lightweight-charts, 7/30/90D), AnalystCard (client:
+                              intro + "Analyze with AI", then AnalysisPanel), CoinStats (server, solid cards)
+  components/features/analyst/ AnalysisPanel (client, shared by the markets list and the coin page:
+                              loading / result / busy / unavailable + the always-rendered footer),
+                              AnalyzeButton ("✦ AI" toggle), useAnalyses (per-coin states for one page),
+                              Expand + usePresence (grid-rows height transition), analysis-view.ts
+                              (pure: result -> view data)
   components/features/home/   HomeLive (client: ONE useCoinsPolling feeds TickerTape + TopMovers; the
                               server-rendered MarketPulse is passed in as children), TickerTape (CSS
                               marquee), MarketPulse (server, 4 StatTiles), TopMovers, MarketDataUnavailable;
@@ -69,7 +74,8 @@ src/
   lib/api/                    /api/v1 contract (contract.ts: zod schemas, no server-only, shared with the
                               client), params.ts, responses.ts (ok/fail, server-only), cache-headers.ts,
                               fetch-coins.ts (browser clients fetchCoins / fetchCoinDetail / fetchCoinChart;
-                              imports contract.ts only)
+                              imports contract.ts only), fetch-analysis.ts (fetchAnalysis: typed
+                              AnalysisRequestError busy | not_found | unavailable; HTTP cache left on)
   lib/hooks/                  use-polling.ts: usePolling(fetcher, initial), the one client polling loop
   lib/providers/              Data-access interfaces, get-market-data-provider.ts, the provider contract
                               suite, and implementations (fixture/, json/, memory/, coingecko/)
@@ -81,7 +87,8 @@ src/
   lib/ai/agents/assistant/    "Kotib" agent: prompt, config, tools
   lib/ai/agents/analyst/      "Tahlilchi" agent: system-prompt.ts (v2), metrics.ts (METRIC_KEYS, LEVEL_KEYS;
                               client-safe), display.ts, output-schema.ts (zod + JSON Schema), verify.ts
-                              (number/invalidation/stance checks), basic-analysis.ts (rule-based fallback),
+                              (number/invalidation/stance checks), verify-language.ts (answer language),
+                              basic-analysis.ts (rule-based fallback),
                               analyze-coin.ts (analyzeCoin: cache -> guards -> input -> model chain)
   lib/ai/analyst/             Analyst input (Step 11): analysis-input.ts (AnalysisInputSchema +
                               buildAnalysisInput, pure), collect-numbers.ts (every citable number, for
@@ -152,15 +159,17 @@ Tests are colocated as *.test.ts(x).
 - Only coin IDs from the current top-99 list are accepted; everything else returns 404.
 - GET /api/v1/analyze?id=<coin id>&locale=<en|ar|uz> (a GET with query params so the CDN can cache it):
   bad id/locale 400 INVALID_INPUT; NOT_FOUND 404; per-IP limit 429 AI_BUSY + Retry-After (no-store);
-  other errors map as above. "ai" and "basic" results are both 200 with
-  "public, max-age=0, s-maxage=900, stale-while-revalidate=300" (cacheTtl.aiAnalysis and
-  aiAnalysisStaleWhileRevalidate). The response meta repeats the result's data { source, fetchedAt, stale }.
-- AI results are also cached in-process per id+locale for 15 min (lib/ai/core/cache.ts: TTL only, never
-  stale; concurrent requests share one analysis; errors are not cached; basic results are cached too so a
-  failing model chain is not retried on every request). Best-effort per instance, like the stale cache.
+  other errors map as above. "ai" and "basic" results are both 200. "ai": "public, max-age=0,
+  s-maxage=900, stale-while-revalidate=300" (cacheTtl.aiAnalysis, aiAnalysisStaleWhileRevalidate);
+  "basic": "public, max-age=0, s-maxage=120, stale-while-revalidate=120" (cacheTtl.aiBasic), so the
+  model chain gets another chance soon. The response meta repeats the result's data { source, fetchedAt, stale }.
+- AI results are also cached in-process per id+locale (lib/ai/core/cache.ts: TTL only, never stale;
+  per-entry TTL via load(key, loader, ttlFor)): "ai" 15 min, "basic" 2 min (analysisCacheTtlMs), so a
+  failing chain is not retried on every request. Concurrent requests share one analysis; errors are not
+  cached. Best-effort per instance, like the stale cache.
 - Cache TTLs (single source: src/config/cache.ts): markets 120s, coin detail 120s, daily history 30m,
-  global market 10m, API 404 60s, AI analysis 15m per coin+locale (CDN stale-while-revalidate 5m);
-  client polling every 60s.
+  global market 10m, API 404 60s, AI analysis 15m per coin+locale (CDN stale-while-revalidate 5m),
+  basic (rule-based) analysis 2m; client polling every 60s.
 - API error shape: { "error": { "code": string, "message": string } }. Never expose stack traces or
   upstream error details to the client.
 
@@ -203,6 +212,8 @@ Tests are colocated as *.test.ts(x).
   The model gets one user message: JSON { input, display, allowedMetrics, allowedLevels, language }.
   display = every metric/level (+ price, ATH, cap, volume) pre-formatted through format.ts for the locale;
   allowed lists drop keys whose value is null. Result `value` fields are always filled from display.
+  The user message ends with one extra line after the JSON: "Respond ONLY in {language}." (the system
+  prompt itself stays verbatim).
 - Model chain (src/config/ai.ts, free models only): qwen/qwen3.8-27b:free (jsonMode schema) ->
   google/gemma-4-31b-it:free (object) -> nvidia/nemotron-3-super-120b-a12b:free (schema).
   OPENROUTER_MODEL_ANALYST (comma-separated ids) replaces it; unknown ids get jsonMode "none".
@@ -212,7 +223,10 @@ Tests are colocated as *.test.ts(x).
 - Validation chain per answer (any failure -> next model; one log line per attempt,
   "[analyst] <model> <outcome> <latencyMs>ms <prompt>/<completion>", never prompts, answers, keys or IPs):
   parse (strip <think>, code fences, text around the object) -> AnalystOutputSchema (enums, lengths, 2-4
-  reasons, 1-3 risks, metric/level keys from the allowed lists) -> numbers (every token in summary,
+  reasons, 1-3 risks, metric/level keys from the allowed lists) -> language (verify-language.ts, over all
+  text fields together: ar >= 60% Arabic-script letters; en/uz >= 90% Latin letters, and Uzbek markers
+  (word list, oʻ/gʻ, suffixes -dagi/-lari/-larni/-dan; never "-ning", which English -ing words end with)
+  must outnumber English stopwords for uz, the reverse for en; outcome "language") -> numbers (every token in summary,
   reasons, risks and invalidation must be in collectNumbers, a display string, the neutral set
   {1,7,14,20,24,30,50,90,100} or the coin's name/symbol; either "." or "," decimal is accepted; any
   non-Latin digit fails) -> invalidation side (BUY level < price, SELL > price) -> stance majority
@@ -227,6 +241,17 @@ Tests are colocated as *.test.ts(x).
   IDs anywhere else.
 - The "Not financial advice" disclaimer is rendered by the UI on every AI answer. Never rely on the LLM
   to include it.
+- Analyst UI (Step 13): a "✦ AI" button per markets row (last table column) and card opens AnalysisPanel
+  under it (table: an extra <tr> with one cell across all columns; cards: below the card, and the card is
+  no longer one big link). One panel open at a time; results are kept per coin in useAnalyses for the
+  visit (reopening never refetches); sorting/tabs/search/polling keep the panel unless its coin leaves the
+  view (then it closes and stays closed). The coin page's AnalystCard uses the same panel. Panels are glass
+  surfaces without blur. Signal = icon + localized label + tone (BUY up, HOLD brand, SELL down);
+  confidence = 3 segments (no percentages); reasons show a metric chip (Analyst.metrics.<key>, value in
+  <bdi dir="ltr">, the trend as a localized word) and the text (ai) or Analyst.basic.templates.<key>
+  (basic); risks and the model id only for ai. AI_BUSY shows a countdown from Retry-After and enables
+  Retry at 0. The loading lines are decorative (aria-hidden) and time-based, not real progress; one
+  sr-only role="status" announces each state.
 - System prompts are versioned files. Change them only with owner approval.
 - Never put untrusted free text (e.g. coin descriptions from APIs) into prompts. Render AI output as
   plain text or sanitized markdown. No raw HTML.
@@ -482,3 +507,15 @@ Tests are colocated as *.test.ts(x).
   returns 429 AI_BUSY; OpenRouter 429s and the global daily budget degrade to basic. Guards and the AI
   cache are in-memory per instance. reasoning is disabled (reasoning tokens count against max_tokens).
   Netlify's x-nf-client-connection-ip is documented only in Netlify's support forum, not the docs.
+- 2026-09-28: Step 13. Analyst answers must be in the page language: the user message ends with
+  "Respond ONLY in {language}." and a server-side check (verify-language.ts) sends a wrong-language
+  answer to the next model (outcome "language"). Basic results are cached for 2 min (CDN s-maxage 120,
+  swr 120, and in-process) instead of 15, so the AI is retried soon.
+- 2026-09-28: Step 13. AI analysis UI on the markets list (row/card "✦ AI" + expandable panel) and the
+  coin page (AnalystCard replaces the placeholder); the home AI Analyst card links to Markets. The mobile
+  coin card is no longer one link: the name/price area is the link, the AI button sits beside it. The
+  loading block is terminal-styled, but its words use font-sans (font-mono is for numbers only: JetBrains
+  Mono has no U+02BB). fetchAnalysis is the one browser fetcher without cache "no-store" (an analysis may
+  come from the HTTP cache). Expand/collapse uses grid-rows 0fr -> 1fr with @starting-style (Tailwind
+  `starting:`) for the open animation; collapse unmounts after duration-slow (at once under reduced motion).
+  The coin page's chart/analyst row is top-aligned so a long analysis does not stretch the chart card.

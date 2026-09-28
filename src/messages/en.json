@@ -29,6 +29,7 @@
     "features": {
       "title": "What you can do",
       "comingSoon": "Coming soon",
+      "analystCta": "Try it in Markets",
       "items": {
         "markets": {
           "title": "Live markets",
@@ -245,11 +246,118 @@
       "error": "Could not load the chart.",
       "retry": "Retry",
       "summary": "{days}-day change: {change}, low {low}, high {high}"
+    }
+  },
+  "Analyst": {
+    "button": "AI",
+    "buttonLabel": "Analyze {coin} with AI",
+    "analyze": "Analyze with AI",
+    "title": "AI Analyst",
+    "intro": "Get a BUY / HOLD / SELL view of {name}, built on indicators computed from market data.",
+    "kind": {
+      "ai": "AI",
+      "basic": "Basic analysis"
     },
-    "ai": {
-      "title": "AI Analyst",
-      "body": "The AI Analyst will analyze {name} with indicators computed from market data and explain its view: buy, hold or sell.",
-      "comingSoon": "Coming soon"
+    "basicNote": "The AI is busy right now; this is a rule-based view.",
+    "loading": {
+      "status": "Analyzing {coin}",
+      "steps": {
+        "data": "Fetching market data…",
+        "indicators": "Computing indicators…",
+        "ai": "Asking the AI…",
+        "verify": "Checking every number…"
+      },
+      "hint": "This can take up to 25 seconds.",
+      "elapsed": "{seconds} s"
+    },
+    "signal": {
+      "BUY": "BUY",
+      "HOLD": "HOLD",
+      "SELL": "SELL"
+    },
+    "confidence": {
+      "label": "Confidence",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "stance": {
+      "bullish": "Bullish",
+      "bearish": "Bearish",
+      "neutral": "Neutral"
+    },
+    "trend": {
+      "up": "Up",
+      "down": "Down",
+      "flat": "Flat"
+    },
+    "reasons": "Reasons",
+    "risks": "Risks",
+    "invalidation": {
+      "below": "The view is invalid if the price moves below <v>{value}</v> ({level}).",
+      "above": "The view is invalid if the price moves above <v>{value}</v> ({level}).",
+      "past": "The view is invalid if the price moves past <v>{value}</v> ({level})."
+    },
+    "busy": "Too many requests, try again in {n} s.",
+    "busyReady": "You can try again now.",
+    "unavailable": "Analysis is unavailable right now.",
+    "retry": "Retry",
+    "disclaimer": "Not financial advice. AI can make mistakes.",
+    "fullDisclaimer": "Full disclaimer",
+    "openCoinPage": "Open coin page",
+    "model": "Model: <m>{model}</m>",
+    "metrics": {
+      "indicators": {
+        "trend": "Trend (SMA 20 vs 50)",
+        "rsi14": "RSI 14",
+        "priceVsSma20Pct": "Price vs SMA 20",
+        "priceVsSma50Pct": "Price vs SMA 50",
+        "volatility30dPct": "Volatility (30d)",
+        "fromLow30dPct": "From 30-day low",
+        "fromHigh30dPct": "From 30-day high",
+        "volumeTrend7dPct": "Volume trend (7d)",
+        "sma20": "SMA 20",
+        "sma50": "SMA 50",
+        "low30d": "30-day low",
+        "high30d": "30-day high",
+        "low90d": "90-day low",
+        "high90d": "90-day high"
+      },
+      "price": {
+        "change24hPct": "24h change",
+        "change7dPct": "7d change",
+        "change30dPct": "30d change",
+        "range24hPositionPct": "Position in 24h range",
+        "low24h": "24h low",
+        "high24h": "24h high"
+      },
+      "market": {
+        "volumeToMarketCapPct": "Volume / market cap",
+        "circulatingToMaxPct": "Circulating / max supply"
+      },
+      "history": {
+        "fromAthPct": "From all-time high"
+      },
+      "context": {
+        "btcDominancePct": "BTC dominance",
+        "marketCapChange24hPct": "Total market cap (24h)"
+      }
+    },
+    "basic": {
+      "templates": {
+        "trendUp": "The 20-day average is above the 50-day average: the trend is up.",
+        "trendDown": "The 20-day average is below the 50-day average: the trend is down.",
+        "trendFlat": "The 20-day and 50-day averages are close: there is no clear trend.",
+        "rsiOverbought": "RSI is above 70: the coin looks overbought.",
+        "rsiStrong": "RSI is between 50 and 70: momentum is positive.",
+        "rsiWeak": "RSI is between 30 and 50: momentum is weak.",
+        "rsiOversold": "RSI is below 30: the coin looks oversold.",
+        "change7dUp": "The price rose more than 2% over 7 days.",
+        "change7dDown": "The price fell more than 2% over 7 days.",
+        "change7dFlat": "The price moved less than 2% over 7 days.",
+        "invalidationBelow": "This is the nearest known level below the current price.",
+        "invalidationAbove": "This is the nearest known level above the current price."
+      }
     }
   },
   "Disclaimer": {

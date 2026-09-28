@@ -75,6 +75,24 @@ export function ChevronIcon({ direction = "end", className, ...props }: ChevronP
   );
 }
 
+/** Done step (analysis progress). */
+export function CheckIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m3.5 8.5 3 3 6-7" />
+    </Icon>
+  );
+}
+
+/** Neutral marker: a filled dot, so "neutral" does not rely on color either. */
+export function DotIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="8" r="2.5" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
 /** Symmetric, so it needs no RTL mirroring. */
 export function MenuIcon(props: IconProps) {
   return (

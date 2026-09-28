@@ -29,14 +29,17 @@ import { buildSystemPrompt, PROMPT_LANGUAGE } from "./system-prompt";
 import {
   buildAllowedNumbers,
   isInvalidationOnCorrectSide,
+  outputTexts,
   signalAgreesWithReasons,
   verifyOutputNumbers,
 } from "./verify";
+import { isWrittenIn } from "./verify-language";
 
 export type AttemptOutcome =
   | "ok"
   | "invalid_json"
   | "schema"
+  | "language"
   | "numbers"
   | "invalidation"
   | "rate_limited"
@@ -91,18 +94,27 @@ type AttemptContext = {
   locale: Locale;
 };
 
-/** The one user message: data only, as JSON. */
+/**
+ * The one user message: the data as JSON, then one line that repeats the answer language. Free
+ * models follow the last instruction they read more reliably than a line deep in the system
+ * prompt, which stays verbatim (owner-approved).
+ */
 export function buildUserMessage(context: AttemptContext): string {
-  return JSON.stringify({
+  const language = PROMPT_LANGUAGE[context.locale];
+  const data = JSON.stringify({
     input: context.input,
     display: context.display,
     allowedMetrics: [...context.allowedMetrics],
     allowedLevels: [...context.allowedLevels],
-    language: PROMPT_LANGUAGE[context.locale],
+    language,
   });
+  return `${data}\n\nRespond ONLY in ${language}.`;
 }
 
-/** Validation chain for one answer: JSON -> schema (+ allowed keys) -> numbers -> invalidation side. */
+/**
+ * Validation chain for one answer: JSON -> schema (+ allowed keys) -> language -> numbers ->
+ * invalidation side.
+ */
 export function checkAnswer(content: string, context: AttemptContext): Checked {
   const json = parseModelJson(content);
   if (!json.ok) return { ok: false, outcome: "invalid_json" };
@@ -117,6 +129,8 @@ export function checkAnswer(content: string, context: AttemptContext): Checked {
   ) {
     return { ok: false, outcome: "schema" };
   }
+
+  if (!isWrittenIn(outputTexts(output), context.locale)) return { ok: false, outcome: "language" };
 
   const allowed = buildAllowedNumbers(context.input, context.display, context.locale);
   if (verifyOutputNumbers(output, allowed).length > 0) return { ok: false, outcome: "numbers" };
@@ -300,11 +314,18 @@ export function createAnalyst({
   }
 
   /**
-   * Cached per coin + locale for cacheTtl.aiAnalysis (hits skip the guards). Concurrent requests
-   * for one key share a single analysis. Basic results are cached too, so a failing model chain
-   * is not retried on every request. Errors (AI_BUSY, NOT_FOUND, upstream) are not cached.
+   * Cached per coin + locale (hits skip the guards): an "ai" result for cacheTtl.aiAnalysis, a
+   * "basic" one for cacheTtl.aiBasic, so a failing model chain is not retried on every request
+   * but gets another chance soon. Concurrent requests for one key share a single analysis.
+   * Errors (AI_BUSY, NOT_FOUND, upstream) are not cached.
    */
-  return (id, locale, options) => cache.load(`${id}:${locale}`, () => analyze(id, locale, options));
+  return (id, locale, options) =>
+    cache.load(`${id}:${locale}`, () => analyze(id, locale, options), analysisCacheTtlMs);
+}
+
+/** In-process lifetime of one result: long for an AI answer, short for the rule-based fallback. */
+export function analysisCacheTtlMs(result: AnalysisResult): number {
+  return (result.kind === "ai" ? cacheTtl.aiAnalysis : cacheTtl.aiBasic) * 1000;
 }
 
 let defaultAnalyst: AnalyzeCoin | undefined;

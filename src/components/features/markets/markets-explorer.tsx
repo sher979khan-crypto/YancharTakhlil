@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useMemo, useState, type ChangeEvent } from "react";
 
+import { useAnalyses } from "@/components/features/analyst/use-analyses";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DemoBanner } from "@/components/ui/demo-banner";
@@ -38,8 +39,8 @@ function isSortKey(value: string): value is SortKey {
 }
 
 /**
- * The live top list: search, All/Gainers/Losers, sortable columns, and polling. Renders a table
- * from md up and link cards below it. Everything that depends on the data (source badge, demo
+ * The live top list: search, All/Gainers/Losers, sortable columns, polling, and the AI Analyst
+ * panel under a row or card. Renders a table from md up and cards below it. Everything that depends on the data (source badge, demo
  * banner, stale and error notices) lives here, so it follows each refresh.
  */
 export function MarketsExplorer({ initial }: { initial: MarketResult<Coin[]> }) {
@@ -52,11 +53,24 @@ export function MarketsExplorer({ initial }: { initial: MarketResult<Coin[]> }) 
   // Null until the user picks a column: then each tab keeps its own natural order.
   const [userSort, setUserSort] = useState<CoinSort | null>(null);
   const sort = userSort ?? defaultSortForTab(tab);
+  // One analysis panel open at a time; results stay per coin for the whole visit.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const analyses = useAnalyses(locale);
 
   const coins = useMemo(
     () => sortCoins(filterByTab(filterBySearch(result.data, query), tab), sort.key, sort.direction),
     [result.data, query, tab, sort.key, sort.direction],
   );
+
+  // Sorting, tabs, search and polling keep the panel open while its coin is still listed. Once it
+  // leaves the view the panel closes for good, so it does not pop back when the coin returns.
+  if (openId !== null && !coins.some((coin) => coin.id === openId)) setOpenId(null);
+
+  function handleToggleAnalysis(id: string) {
+    const opening = openId !== id;
+    setOpenId(opening ? id : null);
+    if (opening) analyses.analyze(id);
+  }
 
   function handleTabChange(next: MarketTab) {
     setTab(next);
@@ -118,10 +132,24 @@ export function MarketsExplorer({ initial }: { initial: MarketResult<Coin[]> }) 
       ) : (
         <>
           <Card className="hidden p-0 md:block">
-            <CoinsTable coins={coins} sort={sort} onSort={handleSort} locale={locale} />
+            <CoinsTable
+              coins={coins}
+              sort={sort}
+              onSort={handleSort}
+              locale={locale}
+              openId={openId}
+              onToggleAnalysis={handleToggleAnalysis}
+              analyses={analyses}
+            />
           </Card>
           <div className="md:hidden">
-            <CoinCards coins={coins} locale={locale} />
+            <CoinCards
+              coins={coins}
+              locale={locale}
+              openId={openId}
+              onToggleAnalysis={handleToggleAnalysis}
+              analyses={analyses}
+            />
           </div>
         </>
       )}

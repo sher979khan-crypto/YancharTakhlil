@@ -1,6 +1,6 @@
 import "server-only";
 
-type Entry = { value: unknown; storedAt: number };
+type Entry = { value: unknown; storedAt: number; ttlMs: number };
 
 export type TtlCache = {
   /** The stored value while it is younger than the TTL, else undefined. */
@@ -8,9 +8,9 @@ export type TtlCache = {
   /**
    * The stored value if fresh; otherwise runs `load` and stores its result. Concurrent callers
    * of one key share a single load. A failed load stores nothing and every waiting caller gets
-   * the error.
+   * the error. `ttlFor` picks a shorter (or longer) lifetime for one loaded value.
    */
-  load<T>(key: string, load: () => Promise<T>): Promise<T>;
+  load<T>(key: string, load: () => Promise<T>, ttlFor?: (value: T) => number): Promise<T>;
 };
 
 type TtlCacheOptions = {
@@ -37,7 +37,7 @@ export function createTtlCache({
   function get<T>(key: string): T | undefined {
     const entry = entries.get(key);
     if (!entry) return undefined;
-    if (now() - entry.storedAt >= ttlMs) {
+    if (now() - entry.storedAt >= entry.ttlMs) {
       entries.delete(key);
       return undefined;
     }
@@ -45,9 +45,9 @@ export function createTtlCache({
     return entry.value as T;
   }
 
-  function store(key: string, value: unknown) {
+  function store(key: string, value: unknown, entryTtlMs: number) {
     entries.delete(key);
-    entries.set(key, { value, storedAt: now() });
+    entries.set(key, { value, storedAt: now(), ttlMs: entryTtlMs });
     if (entries.size > maxEntries) {
       const oldest = entries.keys().next();
       if (!oldest.done) entries.delete(oldest.value);
@@ -56,14 +56,14 @@ export function createTtlCache({
 
   return {
     get,
-    async load<T>(key: string, load: () => Promise<T>): Promise<T> {
+    async load<T>(key: string, load: () => Promise<T>, ttlFor?: (value: T) => number): Promise<T> {
       const cached = get<T>(key);
       if (cached !== undefined) return cached;
 
       let pending = inFlight.get(key) as Promise<T> | undefined;
       if (!pending) {
         pending = load().then((value) => {
-          store(key, value);
+          store(key, value, ttlFor ? ttlFor(value) : ttlMs);
           return value;
         });
         const cleanup = () => inFlight.delete(key);

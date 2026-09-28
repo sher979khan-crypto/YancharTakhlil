@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { cache } from "react";
 
-import { AnalystPlaceholder } from "@/components/features/coin-detail/analyst-placeholder";
+import { AnalystCard } from "@/components/features/coin-detail/analyst-card";
 import { CoinBreadcrumb } from "@/components/features/coin-detail/coin-breadcrumb";
 import { CoinHeader } from "@/components/features/coin-detail/coin-header";
 import { CoinStats } from "@/components/features/coin-detail/coin-stats";
@@ -89,9 +89,10 @@ export default async function CoinPage({ params }: Props) {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8">
       <CoinBreadcrumb name={coin.name} />
       <CoinHeader initial={result} />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* items-start: a long analysis must not stretch the chart card into empty space. */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
         <PriceChart coinId={coin.id} initial={chart} className="lg:col-span-2" />
-        <AnalystPlaceholder name={coin.name} />
+        <AnalystCard coin={{ id: coin.id, name: coin.name }} />
       </div>
       <CoinStats coin={coin} locale={locale} />
     </div>

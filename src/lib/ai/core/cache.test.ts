@@ -72,4 +72,16 @@ describe("createTtlCache", () => {
     expect(cache.get("b")).toBe(2);
     expect(cache.get("c")).toBe(3);
   });
+
+  it("stores a value for the lifetime ttlFor picks for it", async () => {
+    const { cache, advance } = setup(1000);
+    const ttlFor = (value: string) => (value === "short" ? 200 : 1000);
+    await cache.load("s", async () => "short", ttlFor);
+    await cache.load("l", async () => "long", ttlFor);
+    advance(199);
+    expect(cache.get("s")).toBe("short");
+    advance(1);
+    expect(cache.get("s")).toBeUndefined();
+    expect(cache.get("l")).toBe("long");
+  });
 });

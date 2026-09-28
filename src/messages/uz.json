@@ -29,6 +29,7 @@
     "features": {
       "title": "Nimalar qila olasiz",
       "comingSoon": "Tez orada",
+      "analystCta": "Bozorlarda sinab koʻring",
       "items": {
         "markets": {
           "title": "Jonli bozorlar",
@@ -245,11 +246,118 @@
       "error": "Grafikni yuklab boʻlmadi.",
       "retry": "Qayta urinish",
       "summary": "{days} kunlik oʻzgarish: {change}, eng past {low}, eng yuqori {high}"
+    }
+  },
+  "Analyst": {
+    "button": "AI",
+    "buttonLabel": "AI bilan tahlil qilish: {coin}",
+    "analyze": "AI bilan tahlil qilish",
+    "title": "AI Tahlilchi",
+    "intro": "{name} boʻyicha sotib olish / saqlash / sotish xulosasi: bozor maʼlumotlaridan hisoblangan indikatorlarga asoslanadi.",
+    "kind": {
+      "ai": "AI",
+      "basic": "Oddiy tahlil"
     },
-    "ai": {
-      "title": "AI Tahlilchi",
-      "body": "AI Tahlilchi {name} tangasini bozor maʼlumotlaridan hisoblangan indikatorlar asosida tahlil qiladi va fikrini tushuntiradi: sotib olish, ushlab turish yoki sotish.",
-      "comingSoon": "Tez orada"
+    "basicNote": "AI hozir band; bu qoidalarga asoslangan xulosa.",
+    "loading": {
+      "status": "{coin} tahlil qilinmoqda",
+      "steps": {
+        "data": "Bozor maʼlumotlari olinmoqda…",
+        "indicators": "Indikatorlar hisoblanmoqda…",
+        "ai": "AI soʻralmoqda…",
+        "verify": "Har bir raqam tekshirilmoqda…"
+      },
+      "hint": "Bu 25 soniyagacha davom etishi mumkin.",
+      "elapsed": "{seconds} s"
+    },
+    "signal": {
+      "BUY": "Sotib olish",
+      "HOLD": "Saqlash",
+      "SELL": "Sotish"
+    },
+    "confidence": {
+      "label": "Ishonch",
+      "low": "Past",
+      "medium": "Oʻrta",
+      "high": "Yuqori"
+    },
+    "stance": {
+      "bullish": "Ijobiy",
+      "bearish": "Salbiy",
+      "neutral": "Neytral"
+    },
+    "trend": {
+      "up": "Yuqoriga",
+      "down": "Pastga",
+      "flat": "Yonlama"
+    },
+    "reasons": "Sabablar",
+    "risks": "Xavflar",
+    "invalidation": {
+      "below": "Narx <v>{value}</v> ({level}) dan pastga tushsa, bu xulosa oʻz kuchini yoʻqotadi.",
+      "above": "Narx <v>{value}</v> ({level}) dan yuqoriga chiqsa, bu xulosa oʻz kuchini yoʻqotadi.",
+      "past": "Narx <v>{value}</v> ({level}) darajasini kesib oʻtsa, bu xulosa oʻz kuchini yoʻqotadi."
+    },
+    "busy": "Soʻrovlar juda koʻp, {n} soniyadan keyin qayta urinib koʻring.",
+    "busyReady": "Endi qayta urinib koʻrishingiz mumkin.",
+    "unavailable": "Tahlil hozircha mavjud emas.",
+    "retry": "Qayta urinish",
+    "disclaimer": "Moliyaviy maslahat emas. AI xato qilishi mumkin.",
+    "fullDisclaimer": "Masʼuliyatdan voz kechish matni",
+    "openCoinPage": "Tanga sahifasini ochish",
+    "model": "Model: <m>{model}</m>",
+    "metrics": {
+      "indicators": {
+        "trend": "Trend (SMA 20 va 50)",
+        "rsi14": "RSI 14",
+        "priceVsSma20Pct": "Narx va SMA 20",
+        "priceVsSma50Pct": "Narx va SMA 50",
+        "volatility30dPct": "Volatillik (30 kun)",
+        "fromLow30dPct": "30 kunlik minimumdan",
+        "fromHigh30dPct": "30 kunlik maksimumdan",
+        "volumeTrend7dPct": "Hajm trendi (7 kun)",
+        "sma20": "SMA 20",
+        "sma50": "SMA 50",
+        "low30d": "30 kunlik minimum",
+        "high30d": "30 kunlik maksimum",
+        "low90d": "90 kunlik minimum",
+        "high90d": "90 kunlik maksimum"
+      },
+      "price": {
+        "change24hPct": "24 soatlik oʻzgarish",
+        "change7dPct": "7 kunlik oʻzgarish",
+        "change30dPct": "30 kunlik oʻzgarish",
+        "range24hPositionPct": "24 soatlik oraliqdagi oʻrni",
+        "low24h": "24 soatlik minimum",
+        "high24h": "24 soatlik maksimum"
+      },
+      "market": {
+        "volumeToMarketCapPct": "Savdo hajmi / kapitallashuv",
+        "circulatingToMaxPct": "Muomaladagi / maksimal taklif"
+      },
+      "history": {
+        "fromAthPct": "Eng yuqori narxdan"
+      },
+      "context": {
+        "btcDominancePct": "BTC ulushi",
+        "marketCapChange24hPct": "Umumiy kapitallashuv (24 soat)"
+      }
+    },
+    "basic": {
+      "templates": {
+        "trendUp": "20 kunlik oʻrtacha 50 kunlik oʻrtachadan yuqori: trend yuqoriga.",
+        "trendDown": "20 kunlik oʻrtacha 50 kunlik oʻrtachadan past: trend pastga.",
+        "trendFlat": "20 va 50 kunlik oʻrtachalar bir-biriga yaqin: aniq trend yoʻq.",
+        "rsiOverbought": "RSI 70 dan yuqori: tanga haddan tashqari koʻp sotib olinganga oʻxshaydi.",
+        "rsiStrong": "RSI 50 va 70 oraligʻida: momentum ijobiy.",
+        "rsiWeak": "RSI 30 va 50 oraligʻida: momentum zaif.",
+        "rsiOversold": "RSI 30 dan past: tanga haddan tashqari koʻp sotilganga oʻxshaydi.",
+        "change7dUp": "Narx 7 kunda 2% dan koʻproq oshdi.",
+        "change7dDown": "Narx 7 kunda 2% dan koʻproq tushdi.",
+        "change7dFlat": "Narx 7 kunda 2% dan kamroq oʻzgardi.",
+        "invalidationBelow": "Bu joriy narxdan pastdagi eng yaqin maʼlum daraja.",
+        "invalidationAbove": "Bu joriy narxdan yuqoridagi eng yaqin maʼlum daraja."
+      }
     }
   },
   "Disclaimer": {
